@@ -520,22 +520,72 @@ button {
 /* ── Tweet Footer: stats ────────────────────────────────── */
 .tweet-stats {
   display: flex;
-  gap: 16px;
-  margin-top: 10px;
+  align-items: center;
+  gap: 24px;
+  margin-top: 12px;
+  padding-top: 2px;
 }
 
 .tweet-stat {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 0.82rem;
   color: var(--tw-gray);
+  cursor: default;
+  transition: color 0.15s ease;
+  user-select: none;
 }
 
 .tweet-stat svg {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   fill: currentColor;
+  transition: fill 0.15s ease, transform 0.15s ease;
+}
+
+.tweet-stat:hover {
+  cursor: pointer;
+}
+
+/* Hover effects */
+.tweet-stat-rt:hover {
+  color: #00ba7c;
+}
+.tweet-stat-rt:hover svg {
+  fill: #00ba7c;
+  transform: scale(1.12);
+}
+
+.tweet-stat-fav:hover {
+  color: #f91880;
+}
+.tweet-stat-fav:hover svg {
+  fill: #f91880;
+  transform: scale(1.12);
+}
+
+/* Color highlights when count > 0 */
+.tweet-stat-rt.has-count {
+  color: var(--tw-gray);
+}
+.tweet-stat-rt.has-count svg {
+  fill: #00ba7c;
+}
+.tweet-stat-rt.has-count .stat-num {
+  color: #00ba7c;
+  font-weight: 500;
+}
+
+.tweet-stat-fav.has-count {
+  color: var(--tw-gray);
+}
+.tweet-stat-fav.has-count svg {
+  fill: #f91880;
+}
+.tweet-stat-fav.has-count .stat-num {
+  color: #f91880;
+  font-weight: 500;
 }
 
 /* ── Load More ──────────────────────────────────────────── */

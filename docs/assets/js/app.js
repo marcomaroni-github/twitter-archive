@@ -527,26 +527,32 @@ function buildMediaItem(m, itemClass) {
 function buildStatsHtml(tweet) {
   const rt  = tweet.retweet_count  || 0;
   const fav = tweet.favorite_count || 0;
-  if (!rt && !fav) return '';
 
-  const parts = [];
-  if (rt)  parts.push(`<span class="tweet-stat">${svgRetweet()} ${rt.toLocaleString('it-IT')}</span>`);
-  if (fav) parts.push(`<span class="tweet-stat">${svgHeart()} ${fav.toLocaleString('it-IT')}</span>`);
-
-  return `<div class="tweet-stats">${parts.join('')}</div>`;
+  return `
+    <div class="tweet-stats">
+      <span class="tweet-stat tweet-stat-rt${rt > 0 ? ' has-count' : ''}" title="${rt.toLocaleString('it-IT')} Retweet">
+        ${svgRetweet()}
+        <span class="stat-num">${rt.toLocaleString('it-IT')}</span>
+      </span>
+      <span class="tweet-stat tweet-stat-fav${fav > 0 ? ' has-count' : ''}" title="${fav.toLocaleString('it-IT')} Like">
+        ${svgHeart()}
+        <span class="stat-num">${fav.toLocaleString('it-IT')}</span>
+      </span>
+    </div>
+  `;
 }
 
 // ═══════════════════════════════════════════════════════
 // SVG ICONS
 // ═══════════════════════════════════════════════════════
 function svgRetweet() {
-  return `<svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#00ba7c">
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">
     <g><path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.79-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.79 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z"/></g>
   </svg>`;
 }
 
 function svgHeart() {
-  return `<svg viewBox="0 0 24 24" aria-hidden="true" style="fill:#f91880">
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">
     <g><path d="M20.884 13.19c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z"/></g>
   </svg>`;
 }
