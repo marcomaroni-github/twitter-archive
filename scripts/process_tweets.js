@@ -201,10 +201,13 @@ async function main() {
 
   for (const year of Object.keys(byYear)) {
     const tweets     = byYear[year];
+    const jsonStr    = JSON.stringify(tweets);
     const outFile    = path.join(OUT_DATA, `tweets-${year}.json`);
-    fs.writeFileSync(outFile, JSON.stringify(tweets), 'utf8');
+    const outJsFile  = path.join(OUT_DATA, `tweets-${year}.js`);
+    fs.writeFileSync(outFile, jsonStr, 'utf8');
+    fs.writeFileSync(outJsFile, `window.ARCHIVE_TWEETS = window.ARCHIVE_TWEETS || {};\nwindow.ARCHIVE_TWEETS["${year}"] = ${jsonStr};\n`, 'utf8');
     yearCounts[year] = tweets.length;
-    console.log(`   ${year}: ${tweets.length.toLocaleString().padStart(6)} tweet → tweets-${year}.json`);
+    console.log(`   ${year}: ${tweets.length.toLocaleString().padStart(6)} tweet → tweets-${year}.json & .js`);
   }
 
   // 5. Load profile (public fields only — NO email, NO IP)
@@ -226,7 +229,7 @@ async function main() {
     }
   }
 
-  // 6. Write manifest.json (ONLY public, non-sensitive data)
+  // 6. Write manifest.json and manifest.js (ONLY public, non-sensitive data)
   const manifest = {
     profile: {
       username:    account.username    || USERNAME,
@@ -245,8 +248,11 @@ async function main() {
     generatedAt: new Date().toISOString()
   };
 
+  const manifestJson = JSON.stringify(manifest, null, 2);
   const manifestFile = path.join(OUT_DATA, 'manifest.json');
-  fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2), 'utf8');
+  fs.writeFileSync(manifestFile, manifestJson, 'utf8');
+  const manifestJsFile = path.join(OUT_DATA, 'manifest.js');
+  fs.writeFileSync(manifestJsFile, `window.ARCHIVE_MANIFEST = ${manifestJson};\n`, 'utf8');
   console.log(`   Manifest scritto: ${included.toLocaleString()} tweet, ${years.length} anni`);
 
   // 7. Copy avatar image

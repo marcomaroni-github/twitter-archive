@@ -36,7 +36,10 @@ const $ = id => document.getElementById(id);
 // ═══════════════════════════════════════════════════════
 async function init() {
   try {
-    const manifest = await fetchJSON('data/manifest.json');
+    let manifest = window.ARCHIVE_MANIFEST;
+    if (!manifest) {
+      manifest = await fetchJSON('data/manifest.json');
+    }
     App.profile     = manifest.profile;
     App.years       = manifest.years;       // already newest-first from script
     App.tweetCounts = manifest.tweetCounts;
@@ -199,16 +202,43 @@ async function selectYear(year) {
   closeSidebar();
 }
 
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      return resolve();
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.head.appendChild(s);
+  });
+}
+
 async function loadYear(year) {
   const key = String(year);
   if (App.loadedYears.has(key)) return; // cached
 
+  if (window.ARCHIVE_TWEETS && window.ARCHIVE_TWEETS[key]) {
+    App.loadedYears.set(key, window.ARCHIVE_TWEETS[key]);
+    return;
+  }
+
+  // Try loading via script tag first (works seamlessly on file:// without CORS issues)
   try {
-    const tweets = await fetchJSON(`data/tweets-${key}.json`);
+    await loadScript(`data/tweets-${key}.js`);
+    const tweets = (window.ARCHIVE_TWEETS && window.ARCHIVE_TWEETS[key]) || [];
     App.loadedYears.set(key, tweets);
-  } catch (err) {
-    console.warn(`Could not load tweets-${key}.json:`, err);
-    App.loadedYears.set(key, []); // empty to avoid retry
+    return;
+  } catch (scriptErr) {
+    // Fallback to fetch (for pure HTTP environments if .json exists)
+    try {
+      const tweets = await fetchJSON(`data/tweets-${key}.json`);
+      App.loadedYears.set(key, tweets);
+    } catch (err) {
+      console.warn(`Could not load tweets for ${key}:`, err);
+      App.loadedYears.set(key, []); // empty to avoid retry
+    }
   }
 }
 

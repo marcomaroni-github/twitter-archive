@@ -1,4 +1,4 @@
-{
+window.ARCHIVE_MANIFEST = {
   "profile": {
     "username": "marcomaroni",
     "displayName": "Marco Maroni",
@@ -46,4 +46,4 @@
   },
   "totalTweets": 29134,
   "generatedAt": "2026-09-27T06:30:00.695Z"
-}
+};

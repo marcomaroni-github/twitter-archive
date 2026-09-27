@@ -13,10 +13,9 @@ Esportato da Twitter in aprile 2024, prima della migrazione a Bluesky.
 │   ├── assets/
 │   │   ├── css/style.css
 │   │   └── js/app.js
-│   ├── data/               ← Dati JSON filtrati e anonimizzati (generati dagli script)
-│   │   ├── manifest.json
-│   │   ├── tweets-2008.json
-│   │   └── ... (un file per anno)
+│   ├── data/               ← Dati filtrati e anonimizzati (.js e .json)
+│   │   ├── manifest.js / manifest.json
+│   │   └── tweets-<anno>.js / tweets-<anno>.json
 │   └── tweets_media/       ← Media allegati ai tweet (generato da copy_media.js)
 ├── scripts/
 │   ├── process_tweets.js   ← Genera docs/data/ da original-archive/
@@ -27,6 +26,10 @@ Esportato da Twitter in aprile 2024, prima della migrazione a Bluesky.
 > **⚠️ IMPORTANTE**: La cartella `original-archive/` è esclusa da git (`.gitignore`).
 > Contiene dati sensibili (email, IP, DM, blocchi, following) che non devono MAI
 > essere pubblicati. Rimane solo in locale.
+
+## Visualizzazione locale
+
+Puoi visualizzare l'archivio semplicemente aprendo con un doppio clic il file `docs/index.html` nel browser (supportato nativamente senza bisogno di server web locale), oppure tramite qualsiasi web server locale.
 
 ## Setup locale
 
