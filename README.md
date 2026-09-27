@@ -39,17 +39,18 @@ Per rigenerare i dati processati da zero:
 # 1. Processa i tweet (genera docs/data/)
 node scripts/process_tweets.js
 
-# 2. Copia i file media (4648 file → docs/tweets_media/)
+# 2. Copia i file media (1.793 file → docs/tweets_media/)
 node scripts/copy_media.js
 ```
 
-## Tweet inclusi
+## Contenuti inclusi (16.402 tweet)
 
-Il sito mostra solo tweet pubblici:
-- ✅ Tweet originali
-- ✅ Retweet di altri utenti
-- ✅ Continuazioni di thread propri (self-reply)
-- ❌ Risposte ad altri utenti (escluse)
+Il sito mostra esclusivamente i contenuti originali di Marco Maroni:
+- ✅ **Tweet originali** (~15.000 tweet)
+- ✅ **Continuazioni di thread propri** (~1.400 self-replies)
+- ❌ **Retweet di altri utenti** (12.732 RT esclusi)
+- ❌ **Risposte ad altri utenti** (14.909 risposte escluse)
+- 🖼️ **Media allegati**: 1.793 immagini e video (170 MB) integrati localmente
 
 ## Sito
 

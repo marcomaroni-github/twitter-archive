@@ -75,12 +75,19 @@ function loadDataFile(filename) {
 function shouldInclude(tweet) {
   const replyTo = tweet.in_reply_to_status_id || '';
   const replyToUser = tweet.in_reply_to_user_id || '';
-  
-  // Exclude replies to others (keep: originals, RTs, self-replies)
-  if (replyTo && replyToUser !== ACCOUNT_ID) {
-    return false;
+  const text = tweet.full_text || '';
+
+  // Exclude Retweets (content from other users)
+  if (text.startsWith('RT @')) {
+    return { include: false, reason: 'rt' };
   }
-  return true;
+
+  // Exclude replies to others (keep: own original tweets & thread self-replies)
+  if (replyTo && replyToUser !== ACCOUNT_ID) {
+    return { include: false, reason: 'reply' };
+  }
+
+  return { include: true };
 }
 
 // ── Tweet processing ─────────────────────────────────────
@@ -166,14 +173,17 @@ async function main() {
 
   // 2. Filter & process
   console.log('🔍 Filtro e processamento...');
-  const byYear  = {};
-  let excluded  = 0;
-  let included  = 0;
+  const byYear          = {};
+  let excludedReplies   = 0;
+  let excludedRTs       = 0;
+  let included          = 0;
 
   for (const raw of tweetsRaw) {
     const t = raw.tweet || raw;
-    if (!shouldInclude(t)) {
-      excluded++;
+    const filter = shouldInclude(t);
+    if (!filter.include) {
+      if (filter.reason === 'rt') excludedRTs++;
+      else excludedReplies++;
       continue;
     }
     const processed = processTweet(raw);
@@ -183,8 +193,9 @@ async function main() {
     included++;
   }
 
-  console.log(`   ✅ Inclusi: ${included.toLocaleString()} tweet`);
-  console.log(`   ❌ Esclusi: ${excluded.toLocaleString()} risposte ad altri\n`);
+  console.log(`   ✅ Inclusi: ${included.toLocaleString()} tweet (originali e thread personali)`);
+  console.log(`   ❌ Esclusi: ${excludedRTs.toLocaleString()} retweet (RT di terzi)`);
+  console.log(`   ❌ Esclusi: ${excludedReplies.toLocaleString()} risposte ad altri utenti\n`);
 
   // Sort each year newest-first
   for (const year of Object.keys(byYear)) {
