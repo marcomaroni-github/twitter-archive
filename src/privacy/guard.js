@@ -60,6 +60,18 @@ function matcher({ kind, value }) {
   return new RegExp(source, 'i');
 }
 
+const matchersFor = (sensitive) => sensitive.map((s) => ({ kind: s.kind, re: matcher(s) }));
+
+/** Kinds of sensitive values found in content, e.g. new Set(['email']). */
+function kindsIn(content, matchers) {
+  return new Set(matchers.filter((m) => m.re.test(content)).map((m) => m.kind));
+}
+
+/** True if text contains one of the sensitive values (same rules as scanSite). */
+function containsSensitive(text, sensitive) {
+  return kindsIn(String(text), matchersFor(sensitive)).size > 0;
+}
+
 function textFiles(dir, base = dir) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -71,11 +83,11 @@ function textFiles(dir, base = dir) {
 }
 
 function scanSite(siteDir, sensitive) {
-  const matchers = sensitive.map((s) => ({ kind: s.kind, re: matcher(s) }));
+  const matchers = matchersFor(sensitive);
   const findings = [];
   for (const file of textFiles(siteDir)) {
     const content = fs.readFileSync(file, 'utf8');
-    const kinds = new Set(matchers.filter((m) => m.re.test(content)).map((m) => m.kind));
+    const kinds = kindsIn(content, matchers);
     const rel = path.relative(siteDir, file).split(path.sep).join('/');
     for (const kind of kinds) findings.push({ kind, file: rel });
   }
@@ -89,9 +101,9 @@ function guardSite(siteDir, sensitive) {
   const list = findings.map((f) => `your ${f.kind} in ${f.file}`).join(', ');
   throw new UserError(
     `Privacy check failed: found ${list}. The site folder was deleted.`,
-    'If this data appears in one of your own tweets, that tweet cannot be published by this tool yet. ' +
-      'Otherwise please report the problem (without sharing your data).'
+    'This data was found in the generated files although tweets and profile fields containing it are hidden. ' +
+      'Please report the problem (without sharing your data).'
   );
 }
 
-module.exports = { collectSensitive, scanSite, guardSite };
+module.exports = { collectSensitive, containsSensitive, scanSite, guardSite };

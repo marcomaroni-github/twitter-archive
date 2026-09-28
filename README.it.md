@@ -49,9 +49,13 @@ Mai pubblicato, qualunque cosa tu scelga:
 - Tweet cancellati
 - Il dispositivo da cui hai twittato e la posizione associata ai tweet
 
-Lo strumento legge dall'archivio solo i file che gli servono. Come ultima
-protezione, dopo la generazione cerca nel sito la tua email, il tuo numero di
-telefono e i tuoi indirizzi IP: se li trova, cancella il sito e si ferma.
+Lo strumento legge dall'archivio solo i file che gli servono. Se un tuo tweet
+contiene la tua email, il tuo numero di telefono o un tuo indirizzo IP, quel
+tweet viene nascosto; se li contiene la bio o il sito web che hai scelto, quel
+campo resta vuoto. Il riepilogo finale indica quanti tweet sono stati nascosti
+(mai i valori). Come ultima protezione, dopo la generazione cerca nel sito la
+tua email, il tuo numero di telefono e i tuoi indirizzi IP: se li trova,
+cancella il sito e si ferma.
 
 Le menzioni di altre persone (`@nome`) dentro i tuoi tweet restano come sono,
 perché erano già pubbliche.

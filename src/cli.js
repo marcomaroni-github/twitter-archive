@@ -13,7 +13,7 @@ const path = require('path');
 const { UserError } = require('./errors');
 const { locateArchive, removeStaleExtractions } = require('./archive/locate');
 const { readArchive } = require('./archive/read');
-const { collectSensitive, guardSite } = require('./privacy/guard');
+const { collectSensitive, containsSensitive, guardSite } = require('./privacy/guard');
 const { resolveConfig } = require('./wizard');
 const { shouldInclude } = require('./pipeline/filter');
 const { buildNoteIndex, findNote } = require('./pipeline/notes');
@@ -40,7 +40,8 @@ function printSummary(log, summary, siteDir, fixed) {
   log('');
   log(`✔ Site generated in ${rel}${path.sep}`);
   log(`  Tweets published: ${summary.included}`);
-  log(`  Excluded: ${summary.excluded.retweet} retweets, ${summary.excluded.reply} replies to other users`);
+  const { retweet, reply, private: priv } = summary.excluded;
+  log(`  Excluded: ${retweet} retweets, ${reply} replies to other users, ${priv} tweets containing your private contact data`);
   log(`  Media files: ${summary.media.count} (${mb(summary.media.bytes)})`);
   if (fixed.length) log(`  config.json: invalid values replaced with defaults for ${fixed.join(', ')}`);
   for (const w of summary.media.warnings) log(`  ⚠ ${w}`);
@@ -94,7 +95,7 @@ async function build({
     const options = { includeRetweets: config.includeRetweets, includeReplies: config.includeReplies };
     const mediaFiles = listMediaFiles(archive.mediaDir);
     const noteIndex = buildNoteIndex(archive.noteTweets);
-    const excluded = { retweet: 0, reply: 0 };
+    const excluded = { retweet: 0, reply: 0, private: 0 };
     const tweets = [];
     for (const raw of archive.tweets) {
       const decision = shouldInclude(raw, archive.user, options);
@@ -102,19 +103,28 @@ async function build({
         excluded[decision.reason] += 1;
         continue;
       }
-      tweets.push(toPublicTweet(raw, {
+      const publicTweet = toPublicTweet(raw, {
         user: archive.user,
         options,
         hasLocalMedia: (name) => mediaFiles.has(name),
         note: findNote(raw, noteIndex),
-      }));
+      });
+      // The owner's own email/phone/IP in a tweet: hide the tweet instead of blocking the build.
+      if (containsSensitive(JSON.stringify(publicTweet), sensitive)) {
+        excluded.private += 1;
+        continue;
+      }
+      tweets.push(publicTweet);
     }
+    // Same for the profile: blank the field for this build only (config.json is not rewritten).
+    if (containsSensitive(archive.profile.bio, sensitive)) archive.profile.bio = '';
+    const siteConfig = containsSensitive(config.website, sensitive) ? { ...config, website: '' } : config;
 
     log('Writing the site…');
     prepareSiteDir(siteDir);
     const images = copyProfileImages(archive, siteDir);
     const media = copyTweetMedia(tweets, archive.mediaDir, siteDir);
-    const { years } = writeSite({ siteDir, templateDir, archive, config, tweets, images });
+    const { years } = writeSite({ siteDir, templateDir, archive, config: siteConfig, tweets, images });
 
     log('Checking that no private data was published…');
     guardSite(siteDir, sensitive);

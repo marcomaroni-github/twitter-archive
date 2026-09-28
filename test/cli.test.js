@@ -54,7 +54,7 @@ test('end to end: builds a site from a zip with default options', async () => {
   const summary = await run({ ...opts, flags: { yes: true, reconfigure: false } });
 
   assert.equal(summary.included, 5);
-  assert.deepEqual(summary.excluded, { retweet: 1, reply: 1 });
+  assert.deepEqual(summary.excluded, { retweet: 1, reply: 1, private: 0 });
   assert.equal(summary.media.count, 3);
   assert.deepEqual(summary.years, ['2021', '2020']);
 
@@ -89,7 +89,7 @@ test('end to end: options include retweets and replies', async () => {
   }));
   const summary = await run({ ...opts, flags: { yes: false, reconfigure: false } });
   assert.equal(summary.included, 7);
-  assert.deepEqual(summary.excluded, { retweet: 0, reply: 0 });
+  assert.deepEqual(summary.excluded, { retweet: 0, reply: 0, private: 0 });
 });
 
 test('the temporary extraction folder is removed even when the build fails', async () => {
@@ -112,4 +112,34 @@ test('stale extraction folders from interrupted runs are removed', async () => {
     assert.ok(!fs.existsSync(stale), 'stale extraction folder still present');
     assert.ok(fs.existsSync(other), 'unrelated temp folder must be kept');
   });
+});
+
+test('end to end: tweets and bio containing your private contact data are hidden', async () => {
+  const opts = await setup();
+  const src = createFixtureArchive();
+  const edit = (rel, from, to) => {
+    const file = path.join(src, 'data', rel);
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(from, to));
+  };
+  edit('tweets-part1.js', 'Photo without file', `Photo without file, write to ${SENSITIVE.email}`);
+  edit('profile.js', 'I tweet things', `Contact: ${SENSITIVE.email}`);
+  fs.rmSync(path.join(opts.archiveDir, 'twitter.zip'));
+  await zipDir(src, path.join(opts.archiveDir, 'twitter.zip'));
+  fs.writeFileSync(opts.configPath, JSON.stringify({
+    lang: 'en', title: 'T', includeRetweets: false, includeReplies: false, noindex: true, website: `https://example.org/?${SENSITIVE.email}`,
+  }));
+  const lines = [];
+  const summary = await run({ ...opts, log: (l) => lines.push(l), flags: { yes: true, reconfigure: false } });
+
+  assert.equal(summary.included, 4);
+  assert.deepEqual(summary.excluded, { retweet: 1, reply: 1, private: 1 });
+  const all = listFiles(opts.siteDir).map((rel) => fs.readFileSync(path.join(opts.siteDir, rel)).toString('latin1')).join('\n');
+  assert.ok(!all.includes(SENSITIVE.email));
+  assert.ok(!all.includes('Photo without file'));
+  const manifest = fs.readFileSync(path.join(opts.siteDir, 'data', 'manifest.js'), 'utf8');
+  assert.match(manifest, /"bio": ""/);
+  assert.match(manifest, /"website": ""/);
+  assert.ok(lines.some((l) => l.includes('1 tweets containing your private contact data')));
+  assert.ok(!lines.join('\n').includes(SENSITIVE.email));
+  assert.match(fs.readFileSync(opts.configPath, 'utf8'), /example\.org/,'config.json must not be rewritten');
 });

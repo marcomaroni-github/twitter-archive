@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { collectSensitive, scanSite, guardSite } = require('../src/privacy/guard');
+const { collectSensitive, scanSite, guardSite, containsSensitive } = require('../src/privacy/guard');
 const { UserError } = require('../src/errors');
 const { createFixtureArchive, makeTmpDir, SENSITIVE } = require('./helpers/fixture');
 
@@ -61,6 +61,7 @@ test('guardSite deletes the site and throws without revealing the value', () => 
     assert.ok(!err.message.includes(SENSITIVE.phone));
     assert.ok(!err.message.includes('393331234567'));
     assert.ok(!err.hint.includes('393331234567'));
+    assert.doesNotMatch(err.hint, /cannot be published/);
     return true;
   });
   assert.ok(!fs.existsSync(site));
@@ -70,4 +71,15 @@ test('guardSite passes on a clean site', () => {
   const site = siteWith({ 'index.html': '<p>ok</p>' });
   guardSite(site, collectSensitive(createFixtureArchive()));
   assert.ok(fs.existsSync(site));
+});
+
+test('containsSensitive uses the same matching rules as scanSite', () => {
+  const sensitive = collectSensitive(createFixtureArchive());
+  assert.equal(containsSensitive(`mail me at ${SENSITIVE.email.toUpperCase()}`, sensitive), true);
+  assert.equal(containsSensitive(`call ${SENSITIVE.phone}`, sensitive), true);
+  assert.equal(containsSensitive('nothing private here', sensitive), false);
+  const ip = [{ kind: 'ip', value: '1.2.3.4' }];
+  assert.equal(containsSensitive('version 11.2.3.45', ip), false);
+  assert.equal(containsSensitive('ip 1.2.3.4.', ip), true);
+  assert.equal(containsSensitive('anything', []), false);
 });

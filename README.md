@@ -49,9 +49,12 @@ Never published, whatever you choose:
 - Deleted tweets
 - The device you tweeted from and the location attached to tweets
 
-The tool reads only the files it needs from the archive. As a last safety net,
-after building it searches the site for your email, phone number and IP
-addresses: if it finds any, it deletes the site and stops.
+The tool reads only the files it needs from the archive. If one of your tweets
+contains your own email, phone number or IP address, that tweet is hidden; if
+your bio or the website you chose contains one, that field is left empty. The
+summary at the end tells how many tweets were hidden (never the values). As a
+last safety net, after building it searches the site for your email, phone
+number and IP addresses: if it finds any, it deletes the site and stops.
 
 Mentions of other people (`@name`) inside your tweets are kept as they are,
 because they were already public.
