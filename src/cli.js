@@ -14,7 +14,7 @@ const path = require('path');
 const { UserError } = require('./errors');
 const { locateArchive, removeStaleExtractions, removeExtractionSync } = require('./archive/locate');
 const { readArchive } = require('./archive/read');
-const { collectSensitive, containsSensitive, guardSite } = require('./privacy/guard');
+const { collectSensitive, makeSensitiveTest, guardSite } = require('./privacy/guard');
 const { resolveConfig } = require('./wizard');
 const { shouldInclude } = require('./pipeline/filter');
 const { buildNoteIndex, findNote } = require('./pipeline/notes');
@@ -115,6 +115,7 @@ async function build({
     const noteIndex = buildNoteIndex(archive.noteTweets);
     const excluded = { retweet: 0, reply: 0, private: 0 };
     const tweets = [];
+    const isSensitive = makeSensitiveTest(sensitive);
     for (const raw of archive.tweets) {
       const decision = shouldInclude(raw, archive.user, options);
       if (!decision.include) {
@@ -128,15 +129,15 @@ async function build({
         note: findNote(raw, noteIndex),
       });
       // The owner's own email/phone/IP in a tweet: hide the tweet instead of blocking the build.
-      if (containsSensitive(JSON.stringify(publicTweet), sensitive)) {
+      if (isSensitive(JSON.stringify(publicTweet))) {
         excluded.private += 1;
         continue;
       }
       tweets.push(publicTweet);
     }
     // Same for the profile: blank the field for this build only (config.json is not rewritten).
-    if (containsSensitive(archive.profile.bio, sensitive)) archive.profile.bio = '';
-    const siteConfig = containsSensitive(config.website, sensitive) ? { ...config, website: '' } : config;
+    if (isSensitive(archive.profile.bio)) archive.profile.bio = '';
+    const siteConfig = isSensitive(config.website) ? { ...config, website: '' } : config;
 
     log('Writing the site…');
     prepareSiteDir(siteDir);

@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const { collectSensitive, scanSite, guardSite, containsSensitive } = require('../src/privacy/guard');
+const { collectSensitive, scanSite, guardSite, containsSensitive, makeSensitiveTest } = require('../src/privacy/guard');
 const { UserError } = require('../src/errors');
 const { createFixtureArchive, makeTmpDir, SENSITIVE } = require('./helpers/fixture');
 
@@ -91,4 +91,16 @@ test('scanSite also scans files without an extension (e.g. CNAME from extra/)', 
     'tweets_media/a.mp4': SENSITIVE.email,
   });
   assert.deepEqual(scanSite(site, sensitive), [{ kind: 'email', file: 'CNAME' }]);
+});
+
+test('makeSensitiveTest compiles the matchers once and applies the scanSite rules', () => {
+  const sensitive = collectSensitive(createFixtureArchive());
+  const isSensitive = makeSensitiveTest(sensitive);
+  assert.equal(typeof isSensitive, 'function');
+  assert.equal(isSensitive(SENSITIVE.email.toUpperCase()), true);
+  assert.equal(isSensitive('clean text'), false);
+  const ip = makeSensitiveTest([{ kind: 'ip', value: '1.2.3.4' }]);
+  assert.equal(ip('version 11.2.3.45'), false);
+  assert.equal(ip('ip 1.2.3.4.'), true);
+  assert.equal(makeSensitiveTest([])('anything'), false);
 });

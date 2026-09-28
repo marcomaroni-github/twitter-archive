@@ -68,9 +68,15 @@ function kindsIn(content, matchers) {
   return new Set(matchers.filter((m) => m.re.test(content)).map((m) => m.kind));
 }
 
-/** True if text contains one of the sensitive values (same rules as scanSite). */
+/** Compile the matchers once: returns (text) => true if text contains a sensitive value (same rules as scanSite). */
+function makeSensitiveTest(sensitive) {
+  const matchers = matchersFor(sensitive);
+  return (text) => kindsIn(String(text), matchers).size > 0;
+}
+
+/** One-off check; use makeSensitiveTest when checking many texts. */
 function containsSensitive(text, sensitive) {
-  return kindsIn(String(text), matchersFor(sensitive)).size > 0;
+  return makeSensitiveTest(sensitive)(text);
 }
 
 function textFiles(dir, base = dir) {
@@ -107,4 +113,4 @@ function guardSite(siteDir, sensitive) {
   );
 }
 
-module.exports = { collectSensitive, containsSensitive, scanSite, guardSite };
+module.exports = { collectSensitive, containsSensitive, makeSensitiveTest, scanSite, guardSite };
