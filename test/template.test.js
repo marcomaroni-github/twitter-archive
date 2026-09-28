@@ -56,7 +56,7 @@ test('renderText keeps expanded URLs intact (no mention/hashtag rewriting inside
     { url: 'https://t.co/aaa111', expanded_url: 'https://medium.com/@user/post', display_url: 'medium.com/@user/post' },
     { url: 'https://t.co/bbb222', expanded_url: 'https://example.org/page#section', display_url: 'example.org/page#section' },
   ];
-  const html = renderText('Read https://t.co/aaa111 and https://t.co/bbb222', urls, []);
+  const html = renderText('Read https://t.co/aaa111 and https://t.co/bbb222', urls);
   assert.ok(html.includes('<a href="https://medium.com/@user/post" target="_blank" rel="noopener noreferrer">medium.com/@user/post</a>'), html);
   assert.ok(html.includes('<a href="https://example.org/page#section" target="_blank" rel="noopener noreferrer">example.org/page#section</a>'), html);
   assert.doesNotMatch(html, /class="mention"|class="hashtag"/);
@@ -64,7 +64,7 @@ test('renderText keeps expanded URLs intact (no mention/hashtag rewriting inside
 
 test('renderText links mentions and Unicode hashtags with a data-tag attribute', () => {
   const { renderText } = loadArchiveText();
-  const html = renderText('Ciao @friend_1, #perché #tag2 ok', [], ['perché', 'tag2']);
+  const html = renderText('Ciao @friend_1, #perché #tag2 ok', []);
   assert.ok(html.includes('<a href="https://twitter.com/friend_1" target="_blank" rel="noopener noreferrer" class="mention">@friend_1</a>'), html);
   assert.ok(html.includes('<a href="#" class="hashtag" data-tag="perché">#perché</a>'), html);
   assert.ok(html.includes('data-tag="tag2">#tag2</a> ok'), html);
@@ -74,7 +74,7 @@ test('renderText links mentions and Unicode hashtags with a data-tag attribute',
 test('renderText escapes text and never uses a non-http expanded_url as href', () => {
   const { renderText } = loadArchiveText();
   const urls = [{ url: 'https://t.co/ccc333', expanded_url: 'javascript:alert(1)', display_url: 'click me' }];
-  const html = renderText('<script>alert("x")</script> https://t.co/ccc333 https://t.co/unknown9', urls, []);
+  const html = renderText('<script>alert("x")</script> https://t.co/ccc333 https://t.co/unknown9', urls);
   assert.ok(html.startsWith('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;'), html);
   assert.ok(!html.includes('<script'));
   assert.doesNotMatch(html, /href="javascript:/);
@@ -84,6 +84,19 @@ test('renderText escapes text and never uses a non-http expanded_url as href', (
 
 test('renderText does not treat a quote in a hashtag as code', () => {
   const { renderText } = loadArchiveText();
-  const html = renderText("#it's", [], []);
+  const html = renderText("#it's", []);
   assert.ok(html.includes('data-tag="it">#it</a>&#39;s'), html);
+});
+
+test('a # right after a slash (plain-text path or URL fragment) is not a hashtag', () => {
+  const { renderText } = loadArchiveText();
+  const html = renderText('see example.org/#section and docs/#x, but #real', []);
+  assert.ok(html.startsWith('see example.org/#section and docs/#x, but '), html);
+  assert.equal((html.match(/class="hashtag"/g) || []).length, 1);
+  assert.ok(html.includes('data-tag="real"'), html);
+});
+
+test('renderText takes only the text and the URLs', () => {
+  const { renderText } = loadArchiveText();
+  assert.equal(renderText.length, 2);
 });

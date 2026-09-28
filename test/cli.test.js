@@ -79,6 +79,15 @@ test('end to end: builds a site from a zip with default options', async () => {
   assert.match(tweets2021, /here it is complete/);
 });
 
+test('summary lines use singular and plural correctly', async () => {
+  const opts = await setup();
+  const lines = [];
+  await run({ ...opts, log: (l) => lines.push(l), flags: { yes: true, reconfigure: false } });
+  assert.ok(lines.includes('  Tweets published: 5'), lines.join('|'));
+  assert.ok(lines.includes('  Excluded: 1 retweet, 1 reply to other users, 0 tweets containing your private contact data'), lines.join('|'));
+  assert.ok(lines.some((l) => l.startsWith('  Media: 3 files (')), lines.join('|'));
+});
+
 test('end to end: no private data anywhere in the site', async () => {
   const opts = await setup();
   await run({ ...opts, flags: { yes: true, reconfigure: false } });
@@ -154,7 +163,7 @@ test('end to end: tweets and bio containing your private contact data are hidden
   const manifest = fs.readFileSync(path.join(opts.siteDir, 'data', 'manifest.js'), 'utf8');
   assert.match(manifest, /"bio": ""/);
   assert.match(manifest, /"website": ""/);
-  assert.ok(lines.some((l) => l.includes('1 tweets containing your private contact data')));
+  assert.ok(lines.includes('  Excluded: 1 retweet, 1 reply to other users, 1 tweet containing your private contact data'), lines.join('|'));
   assert.ok(!lines.join('\n').includes(SENSITIVE.email));
   assert.match(fs.readFileSync(opts.configPath, 'utf8'), /example\.org/, 'config.json must not be rewritten');
 });
@@ -168,7 +177,7 @@ test('end to end: files in extra/ are copied into the site', async () => {
   await run({ ...opts, log: (l) => lines.push(l), flags: { yes: true, reconfigure: false } });
   assert.equal(fs.readFileSync(path.join(opts.siteDir, 'CNAME'), 'utf8'), 'tweets.example.org');
   assert.ok(!fs.existsSync(path.join(opts.siteDir, 'README.md')));
-  assert.ok(lines.includes('  Extra files copied: 1'));
+  assert.ok(lines.includes('  Copied from extra/: 1 file'), lines.join('|'));
 });
 
 test('end to end: an image that cannot be cleaned falls back to the remote URL', async () => {

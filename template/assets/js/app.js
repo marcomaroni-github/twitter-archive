@@ -424,7 +424,7 @@ function buildTweetCard(tweet) {
             </a>
           </span>
         </div>
-        <div class="tweet-text">${renderText(tweetText, tweet.urls, tweet.hashtags)}</div>
+        <div class="tweet-text">${renderText(tweetText, tweet.urls)}</div>
         ${buildMediaHtml(tweet)}
         ${buildStatsHtml(tweet)}
       </div>
@@ -458,7 +458,7 @@ function tokenizeText(rawText, urls) {
   const re = new RegExp(
     `(${alternatives.join('|')})` +
       '|(?<![\\p{L}\\p{N}_&/])@(\\w+)' +
-      '|(?<![\\p{L}\\p{N}_&])#([\\p{L}\\p{N}_]+)',
+      '|(?<![\\p{L}\\p{N}_&/])#([\\p{L}\\p{N}_]+)',
     'gu'
   );
 
@@ -486,7 +486,7 @@ function tokenizeText(rawText, urls) {
 }
 
 /** Tweet text as HTML: every piece is escaped, links only point to http(s). */
-function renderText(rawText, urls, hashtags) {
+function renderText(rawText, urls) {
   return tokenizeText(rawText, urls).map(t => {
     switch (t.type) {
       case 'url':

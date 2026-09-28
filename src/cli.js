@@ -35,17 +35,19 @@ function parseArgs(argv) {
 }
 
 const mb = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 function printSummary(log, summary, siteDir, fixed) {
   const rel = path.relative(process.cwd(), siteDir) || siteDir;
+  const { retweet, reply, private: priv } = summary.excluded;
   log('');
   log(`✔ Site generated in ${rel}${path.sep}`);
   log(`  Tweets published: ${summary.included}`);
-  const { retweet, reply, private: priv } = summary.excluded;
-  log(`  Excluded: ${retweet} retweets, ${reply} replies to other users, ${priv} tweets containing your private contact data`);
-  log(`  Media files: ${summary.media.count} (${mb(summary.media.bytes)})`);
+  log(`  Excluded: ${count(retweet, 'retweet', 'retweets')}, ${count(reply, 'reply', 'replies')} to other users, ` +
+    `${count(priv, 'tweet', 'tweets')} containing your private contact data`);
+  log(`  Media: ${count(summary.media.count, 'file', 'files')} (${mb(summary.media.bytes)})`);
   if (fixed.length) log(`  config.json: invalid values replaced with defaults for ${fixed.join(', ')}`);
-  if (summary.extraFiles > 0) log(`  Extra files copied: ${summary.extraFiles}`);
+  if (summary.extraFiles > 0) log(`  Copied from extra/: ${count(summary.extraFiles, 'file', 'files')}`);
   for (const w of summary.media.warnings) log(`  ⚠ ${w}`);
   log('');
   log('Next steps:');
