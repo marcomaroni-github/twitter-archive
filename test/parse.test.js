@@ -12,6 +12,8 @@ test('parseManifest returns the config object', () => {
 test('parseManifest rejects other formats with a UserError', () => {
   assert.throws(() => parseManifest('var x = {}'), UserError);
   assert.throws(() => parseManifest('{"a":1}'), UserError);
+  assert.throws(() => parseManifest('window.__THAR_CONFIG = null'), UserError);
+  assert.throws(() => parseManifest('window.__THAR_CONFIG = []'), UserError);
 });
 
 test('parseYtd returns the array of a YTD file', () => {

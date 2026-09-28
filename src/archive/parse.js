@@ -21,7 +21,8 @@ function splitAssignment(content) {
 
 function parseManifest(content) {
   const parts = splitAssignment(content);
-  if (!parts || parts[0] !== 'window.__THAR_CONFIG' || typeof parts[1] !== 'object') {
+  const config = parts && parts[1];
+  if (!parts || parts[0] !== 'window.__THAR_CONFIG' || !config || typeof config !== 'object' || Array.isArray(config)) {
     throw new UserError('Unsupported archive format: data/manifest.js is not recognized.', UNSUPPORTED_HINT);
   }
   return parts[1];
