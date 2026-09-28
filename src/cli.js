@@ -131,6 +131,11 @@ async function build({
     try {
       const images = copyProfileImages(archive, siteDir);
       media = copyTweetMedia(tweets, archive.mediaDir, siteDir);
+      // Images that could not be cleaned were not copied: show the remote URL instead.
+      const skipped = new Set(media.skipped);
+      for (const t of tweets) {
+        for (const m of t.media) if (m.local && skipped.has(path.basename(m.local))) m.local = null;
+      }
       ({ years } = writeSite({ siteDir, templateDir, archive, config: siteConfig, tweets, images }));
       extraFiles = copyExtra(extraDir, siteDir);
 

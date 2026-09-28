@@ -14,14 +14,19 @@ function listMediaFiles(mediaDir) {
   return new Set(fs.existsSync(mediaDir) ? fs.readdirSync(mediaDir) : []);
 }
 
-/** Copy one file, removing image metadata. Returns the number of bytes written. */
+/**
+ * Copy one file, removing image metadata. Returns the number of bytes written,
+ * or null when the image metadata cannot be removed (nothing is written).
+ */
 function copyClean(src, dest) {
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
   if (IMAGE_EXT.has(path.extname(src).toLowerCase())) {
     const cleaned = stripMetadata(fs.readFileSync(src));
+    if (cleaned === null) return null;
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, cleaned);
     return cleaned.length;
   }
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
   return fs.statSync(dest).size;
 }
@@ -31,12 +36,18 @@ function copyTweetMedia(tweets, mediaDir, siteDir) {
   for (const t of tweets) for (const m of t.media || []) if (m.local) needed.add(path.basename(m.local));
 
   const warnings = [];
+  const skipped = [];
   let count = 0;
   let bytes = 0;
   for (const name of needed) {
     const src = path.join(mediaDir, name);
     if (!fs.existsSync(src)) continue;
     const size = copyClean(src, path.join(siteDir, 'tweets_media', name));
+    if (size === null) {
+      skipped.push(name);
+      warnings.push(`Image not published (metadata could not be removed): tweets_media/${name}`);
+      continue;
+    }
     if (size > MAX_FILE_BYTES) {
       warnings.push(`Large file (${mb(size)}): tweets_media/${name} — GitHub Pages rejects files over 100 MB.`);
     }
@@ -46,7 +57,7 @@ function copyTweetMedia(tweets, mediaDir, siteDir) {
   if (bytes > MAX_TOTAL_BYTES) {
     warnings.push(`Media total is ${mb(bytes)} — GitHub Pages sites should stay under 1 GB.`);
   }
-  return { count, bytes, warnings };
+  return { count, bytes, warnings, skipped };
 }
 
 /** Last path segment of a URL without extension, e.g. ".../profile_images/1/abc.jpg" → "abc". */
@@ -61,8 +72,8 @@ function copyProfileImage(archive, url, baseName, siteDir) {
   const file = archive.profileMediaFiles.find((f) => f.replace(/\.[^.]+$/, '').endsWith(`-${key}`));
   if (!file) return null;
   const rel = `assets/images/${baseName}${path.extname(file).toLowerCase()}`;
-  copyClean(path.join(archive.profileMediaDir, file), path.join(siteDir, rel));
-  return rel;
+  const size = copyClean(path.join(archive.profileMediaDir, file), path.join(siteDir, rel));
+  return size === null ? null : rel;
 }
 
 function copyProfileImages(archive, siteDir) {

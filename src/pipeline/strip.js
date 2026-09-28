@@ -6,8 +6,11 @@ const JPEG_DROP = new Set([0xe1, 0xed, 0xfe]);
 const PNG_DROP = new Set(['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME']);
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
+const isJpeg = (buf) => buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xd8;
+const isPng = (buf) => buf.length >= 8 && buf.subarray(0, 8).equals(PNG_SIGNATURE);
+
+/** Returns null when the JPEG structure cannot be parsed. */
 function stripJpeg(buf) {
-  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return null;
   const parts = [buf.subarray(0, 2)];
   let i = 2;
   while (i + 4 <= buf.length) {
@@ -32,8 +35,8 @@ function stripJpeg(buf) {
   return null;
 }
 
+/** Returns null when the PNG structure cannot be parsed. */
 function stripPng(buf) {
-  if (buf.length < 8 || !buf.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
   const parts = [buf.subarray(0, 8)];
   let i = 8;
   while (i + 12 <= buf.length) {
@@ -48,9 +51,15 @@ function stripPng(buf) {
   return null;
 }
 
-/** Remove metadata (EXIF, GPS, comments) from JPEG/PNG. Anything else is returned unchanged. */
+/**
+ * Remove metadata (EXIF, GPS, comments) from JPEG/PNG. Anything else is returned unchanged.
+ * Returns null for a JPEG/PNG that cannot be parsed: its metadata cannot be removed,
+ * so it must not be published (fail closed).
+ */
 function stripMetadata(buf) {
-  return stripJpeg(buf) || stripPng(buf) || buf;
+  if (isJpeg(buf)) return stripJpeg(buf);
+  if (isPng(buf)) return stripPng(buf);
+  return buf;
 }
 
 module.exports = { stripMetadata };

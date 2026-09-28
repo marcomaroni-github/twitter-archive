@@ -27,9 +27,12 @@ test('PNG: removes text chunks, keeps image chunks', () => {
   assert.ok(out.includes('IHDR') && out.includes('IDAT') && out.includes('IEND'));
 });
 
-test('unrecognized or truncated data is returned unchanged', () => {
+test('unrecognized data is returned unchanged', () => {
   const mp4 = Buffer.from('MP4DATA');
   assert.equal(stripMetadata(mp4), mp4);
-  const truncated = makeJpeg().subarray(0, 10);
-  assert.equal(stripMetadata(truncated), truncated);
+});
+
+test('an image that cannot be parsed returns null (fail closed)', () => {
+  assert.equal(stripMetadata(makeJpeg().subarray(0, 10)), null);
+  assert.equal(stripMetadata(makePng().subarray(0, 30)), null);
 });

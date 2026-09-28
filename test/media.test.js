@@ -28,6 +28,7 @@ test('copies only referenced media, stripping image metadata', () => {
   assert.equal(result.count, 3);
   assert.ok(result.bytes > 0);
   assert.deepEqual(result.warnings, []);
+  assert.deepEqual(result.skipped, []);
   const jpg = fs.readFileSync(path.join(site, 'tweets_media', '101-photoA.jpg')).toString('latin1');
   assert.ok(!jpg.includes('GPSDATA'));
   assert.equal(fs.readFileSync(path.join(site, 'tweets_media', '107-clipB.mp4'), 'utf8'), 'MP4DATA');
@@ -57,4 +58,26 @@ test('copies avatar and header with fixed names and no metadata', () => {
 test('profile images are null when not in the archive', () => {
   const archive = { ...readArchive(createFixtureArchive()), profileMediaFiles: [] };
   assert.deepEqual(copyProfileImages(archive, makeTmpDir('site')), { avatar: null, header: null });
+});
+
+test('an image whose metadata cannot be removed is not copied', () => {
+  const archive = readArchive(createFixtureArchive());
+  const photo = path.join(archive.mediaDir, '101-photoA.jpg');
+  fs.writeFileSync(photo, fs.readFileSync(photo).subarray(0, 10));
+  const site = makeTmpDir('site');
+  const result = copyTweetMedia(tweets, archive.mediaDir, site);
+  assert.deepEqual(result.skipped, ['101-photoA.jpg']);
+  assert.equal(result.count, 2);
+  assert.ok(!fs.existsSync(path.join(site, 'tweets_media', '101-photoA.jpg')));
+  assert.ok(result.warnings.includes('Image not published (metadata could not be removed): tweets_media/101-photoA.jpg'));
+});
+
+test('a profile image whose metadata cannot be removed is null', () => {
+  const archive = readArchive(createFixtureArchive());
+  const avatar = path.join(archive.profileMediaDir, '1000-avatarX.jpg');
+  fs.writeFileSync(avatar, fs.readFileSync(avatar).subarray(0, 10));
+  const site = makeTmpDir('site');
+  const images = copyProfileImages(archive, site);
+  assert.deepEqual(images, { avatar: null, header: 'assets/images/header.jpg' });
+  assert.ok(!fs.existsSync(path.join(site, 'assets', 'images', 'avatar.jpg')));
 });

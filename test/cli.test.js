@@ -3,11 +3,18 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { build, parseArgs } = require('../src/cli');
 const { UserError } = require('../src/errors');
 const { createFixtureArchive, makeTmpDir, zipDir, listFiles, SENSITIVE } = require('./helpers/fixture');
 
 const TEMPLATE = path.join(__dirname, '..', 'template');
+
+function loadGlobal(file, name) {
+  const ctx = { window: {} };
+  vm.runInNewContext(fs.readFileSync(file, 'utf8'), ctx);
+  return JSON.parse(JSON.stringify(ctx.window[name]));
+}
 
 /**
  * Run fn with a private temp base: build() removes stale twitter-archive-* folders
@@ -162,4 +169,21 @@ test('end to end: files in extra/ are copied into the site', async () => {
   assert.equal(fs.readFileSync(path.join(opts.siteDir, 'CNAME'), 'utf8'), 'tweets.example.org');
   assert.ok(!fs.existsSync(path.join(opts.siteDir, 'README.md')));
   assert.ok(lines.includes('  Extra files copied: 1'));
+});
+
+test('end to end: an image that cannot be cleaned falls back to the remote URL', async () => {
+  const opts = await setup();
+  const src = createFixtureArchive();
+  const photo = path.join(src, 'data', 'tweets_media', '101-photoA.jpg');
+  fs.writeFileSync(photo, fs.readFileSync(photo).subarray(0, 10));
+  fs.rmSync(path.join(opts.archiveDir, 'twitter.zip'));
+  await zipDir(src, path.join(opts.archiveDir, 'twitter.zip'));
+  const summary = await run({ ...opts, flags: { yes: true, reconfigure: false } });
+
+  assert.deepEqual(summary.media.skipped, ['101-photoA.jpg']);
+  assert.ok(!fs.existsSync(path.join(opts.siteDir, 'tweets_media', '101-photoA.jpg')));
+  const t101 = loadGlobal(path.join(opts.siteDir, 'data', 'tweets-2020.js'), 'ARCHIVE_TWEETS')['2020'].find((t) => t.id === '101');
+  assert.equal(t101.media[0].local, null);
+  assert.equal(t101.media[0].url, 'https://pbs.twimg.com/media/photoA.jpg');
+  assert.equal(t101.media[1].local, 'tweets_media/101-diagram.png');
 });
