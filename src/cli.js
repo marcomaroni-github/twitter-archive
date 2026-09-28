@@ -81,6 +81,7 @@ async function build({
   flags = { yes: false, reconfigure: false },
   prompt,
   log = console.log,
+  interactive = Boolean(process.stdin.isTTY),
 } = {}) {
   removeStaleExtractions();
   log('Looking for your archive…');
@@ -91,8 +92,11 @@ async function build({
     const sensitive = collectSensitive(located.root);
     log(`Found the archive of @${archive.user.userName} (${archive.tweets.length} tweets).`);
 
+    // Questions cannot be answered without a terminal (CI, piped input): act as --yes.
+    const yes = flags.yes || !interactive;
+    if (!flags.yes && !interactive) log('No interactive terminal: using config.json or the defaults.');
     const { config, fixed } = await resolveConfig({
-      configPath, archive, reconfigure: flags.reconfigure, yes: flags.yes, prompt,
+      configPath, archive, reconfigure: flags.reconfigure, yes, prompt,
     });
 
     const options = { includeRetweets: config.includeRetweets, includeReplies: config.includeReplies };

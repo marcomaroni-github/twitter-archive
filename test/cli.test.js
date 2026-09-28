@@ -187,3 +187,25 @@ test('end to end: an image that cannot be cleaned falls back to the remote URL',
   assert.equal(t101.media[0].url, 'https://pbs.twimg.com/media/photoA.jpg');
   assert.equal(t101.media[1].local, 'tweets_media/101-diagram.png');
 });
+
+test('without an interactive terminal the build behaves like --yes', async () => {
+  const opts = await setup();
+  const lines = [];
+  let asked = false;
+  const prompt = async () => { asked = true; return {}; };
+  const summary = await run({
+    ...opts, log: (l) => lines.push(l), flags: { yes: false, reconfigure: false }, interactive: false, prompt,
+  });
+  assert.equal(asked, false, 'prompt must not be called');
+  assert.equal(summary.included, 5);
+  assert.ok(lines.includes('No interactive terminal: using config.json or the defaults.'));
+  assert.ok(fs.existsSync(opts.configPath));
+});
+
+test('with an interactive terminal the setup questions are asked', async () => {
+  const opts = await setup();
+  let asked = false;
+  const prompt = async () => { asked = true; return {}; };
+  await assert.rejects(run({ ...opts, flags: { yes: false, reconfigure: false }, interactive: true, prompt }), UserError);
+  assert.equal(asked, true);
+});
