@@ -1,8 +1,14 @@
 # ==========================================================
-# DATI SENSIBILI - NON PUBBLICARE MAI
-# L'archivio originale contiene email, IP, DM e altri dati privati
+# PERSONAL DATA - NEVER COMMIT
+# Twitter archives contain email, IP addresses, DMs and other private data
 # ==========================================================
+archive/*
+!archive/README.md
 original-archive/
+config.json
+
+# Generated site
+site/
 
 # Node
 node_modules/

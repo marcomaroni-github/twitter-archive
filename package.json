@@ -1,0 +1,21 @@
+{
+  "name": "twitter-archive-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn your Twitter archive into a privacy-safe static website",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node src/cli.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "prompts": "^2.4.2",
+    "yauzl": "^3.1.3"
+  },
+  "devDependencies": {
+    "yazl": "^2.5.1"
+  }
+}
