@@ -31,6 +31,10 @@ function extractZip(zipPath, destDir) {
     `Cannot read the zip file "${path.basename(zipPath)}".`,
     'The file may be corrupted or incomplete: download the archive again from Twitter/X.'
   );
+  const writeFailed = () => new UserError(
+    'Cannot write the extracted archive to the temporary folder.',
+    'Check that there is enough free disk space and try again.'
+  );
   const base = path.resolve(destDir) + path.sep;
   return new Promise((resolve, reject) => {
     yauzl.open(zipPath, { lazyEntries: true }, (openErr, zip) => {
@@ -53,7 +57,7 @@ function extractZip(zipPath, destDir) {
           if (streamErr) return reject(corrupted());
           const writeStream = fs.createWriteStream(dest);
           readStream.on('error', () => reject(corrupted()));
-          writeStream.on('error', reject);
+          writeStream.on('error', () => reject(writeFailed()));
           writeStream.on('finish', () => zip.readEntry());
           readStream.pipe(writeStream);
         });
