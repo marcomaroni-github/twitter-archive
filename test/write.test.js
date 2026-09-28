@@ -1,6 +1,6 @@
 'use strict';
 const test = require('node:test');
-const assert = require('node:assert');
+const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -29,7 +29,8 @@ function build(overrides = {}) {
 function loadGlobal(file, name) {
   const ctx = { window: {} };
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), ctx);
-  return ctx.window[name];
+  // Deserialize via JSON to move objects from vm context's realm to this realm (strict deepEqual requires same prototype)
+  return JSON.parse(JSON.stringify(ctx.window[name]));
 }
 
 test('renderTemplate escapes values, inserts raw values, rejects unknown placeholders', () => {
