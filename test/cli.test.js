@@ -100,6 +100,13 @@ test('the temporary extraction folder is removed even when the build fails', asy
   });
 });
 
+test('a build that fails while writing the site leaves no partial site folder', async () => {
+  const opts = await setup();
+  const templateDir = path.join(path.dirname(opts.siteDir), 'no-template');
+  await assert.rejects(run({ ...opts, templateDir, flags: { yes: true, reconfigure: false } }));
+  assert.ok(!fs.existsSync(opts.siteDir), 'partial site folder still present');
+});
+
 test('stale extraction folders from interrupted runs are removed', async () => {
   const opts = await setup();
   await withTmpBase(async (tmpBase) => {
@@ -141,5 +148,5 @@ test('end to end: tweets and bio containing your private contact data are hidden
   assert.match(manifest, /"website": ""/);
   assert.ok(lines.some((l) => l.includes('1 tweets containing your private contact data')));
   assert.ok(!lines.join('\n').includes(SENSITIVE.email));
-  assert.match(fs.readFileSync(opts.configPath, 'utf8'), /example\.org/,'config.json must not be rewritten');
+  assert.match(fs.readFileSync(opts.configPath, 'utf8'), /example\.org/, 'config.json must not be rewritten');
 });

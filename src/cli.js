@@ -9,6 +9,7 @@ if (NODE_MAJOR < 18) {
   process.exit(1);
 }
 
+const fs = require('fs');
 const path = require('path');
 const { UserError } = require('./errors');
 const { locateArchive, removeStaleExtractions } = require('./archive/locate');
@@ -122,12 +123,24 @@ async function build({
 
     log('Writing the site…');
     prepareSiteDir(siteDir);
-    const images = copyProfileImages(archive, siteDir);
-    const media = copyTweetMedia(tweets, archive.mediaDir, siteDir);
-    const { years } = writeSite({ siteDir, templateDir, archive, config: siteConfig, tweets, images });
+    let media;
+    let years;
+    try {
+      const images = copyProfileImages(archive, siteDir);
+      media = copyTweetMedia(tweets, archive.mediaDir, siteDir);
+      ({ years } = writeSite({ siteDir, templateDir, archive, config: siteConfig, tweets, images }));
 
-    log('Checking that no private data was published…');
-    guardSite(siteDir, sensitive);
+      log('Checking that no private data was published…');
+      guardSite(siteDir, sensitive);
+    } catch (err) {
+      // Never leave a partial site that the privacy check has not approved.
+      try {
+        fs.rmSync(siteDir, { recursive: true, force: true, maxRetries: 3 });
+      } catch {
+        // Best effort: the original error matters more.
+      }
+      throw err;
+    }
 
     const summary = { included: tweets.length, excluded, media, years };
     printSummary(log, summary, siteDir, fixed);
