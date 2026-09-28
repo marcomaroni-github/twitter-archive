@@ -1,57 +1,80 @@
-# twitter-archive.marcomaroni.it
+# Twitter Archive Site
 
-Archivio pubblico dei tweet di [@marcomaroni](https://twitter.com/marcomaroni) (2008–2024).
+Turn the archive you downloaded from Twitter/X into a static website you can
+publish anywhere — keeping your private data private.
 
-Esportato da Twitter in aprile 2024, prima della migrazione a Bluesky.
+Supported format: the Twitter archive as exported in April 2024.
 
-## Struttura del progetto
+## What you need
+
+- [Node.js](https://nodejs.org) 18 or newer
+- Your Twitter archive (`.zip`), requested from Twitter/X under
+  *Settings → Your account → Download an archive of your data*
+
+## Create your site
+
+1. Download this project (green **Code** button → **Download ZIP**, then extract it) or clone it with git.
+2. Copy your archive `.zip` into the `archive` folder. If Twitter split it into several zips, copy all of them.
+3. Open a terminal in the project folder and run:
+
+   ```
+   npm install
+   npm run build
+   ```
+
+4. Answer a few questions. Pressing Enter keeps the safe default.
+5. Double-click `site/index.html` to check the result in your browser.
+6. Publish the `site` folder (see [Publishing](#publishing)).
+
+Your answers are saved in `config.json`: the next `npm run build` asks nothing.
+
+| Command | What it does |
+|---|---|
+| `npm run build` | Builds the site (asks questions only the first time) |
+| `npm run build -- --reconfigure` | Asks the questions again |
+| `npm run build -- --yes` | Never asks; uses `config.json` or the defaults |
+| `npm run build -- --debug` | Shows technical details when something goes wrong |
+
+## What gets published — and what doesn't
+
+Published:
+- Your own tweets and the replies you wrote in your own threads
+- Their photos and videos (with location and camera data removed from images)
+- Your name, username, bio, location, avatar and header as shown on your profile
+- Retweets and replies to other users **only if you choose so** (default: no)
+
+Never published, whatever you choose:
+- Direct messages, email address, phone number, IP addresses
+- Followers, following, likes, blocks, mutes, lists, ads data
+- Deleted tweets
+- The device you tweeted from and the location attached to tweets
+
+The tool reads only the files it needs from the archive. As a last safety net,
+after building it searches the site for your email, phone number and IP
+addresses: if it finds any, it deletes the site and stops.
+
+Mentions of other people (`@name`) inside your tweets are kept as they are,
+because they were already public.
+
+By default the site asks search engines not to index it. You can change this
+during the setup.
+
+## Publishing
+
+The `site` folder is a plain static website: upload it anywhere.
+
+- **GitHub Pages**: create a new repository, put the contents of `site` in it,
+  then *Settings → Pages → Deploy from a branch*. GitHub rejects files over
+  100 MB and recommends sites under 1 GB: the build warns you if you exceed them.
+- **Netlify**: drag and drop the `site` folder on <https://app.netlify.com/drop>.
+- **Your own server**: copy the contents of `site` to the web root.
+
+Never publish the `archive` folder or `config.json`.
+
+## Development
 
 ```
-.
-├── docs/                   ← Sito pubblico (GitHub Pages source)
-│   ├── index.html
-│   ├── assets/
-│   │   ├── css/style.css
-│   │   └── js/app.js
-│   ├── data/               ← Dati filtrati e anonimizzati (.js e .json)
-│   │   ├── manifest.js / manifest.json
-│   │   └── tweets-<anno>.js / tweets-<anno>.json
-│   └── tweets_media/       ← Media allegati ai tweet (generato da copy_media.js)
-├── scripts/
-│   ├── process_tweets.js   ← Genera docs/data/ da original-archive/
-│   └── copy_media.js       ← Copia i file media in docs/tweets_media/
-└── original-archive/       ← ⚠️ GITIGNORED — archivio grezzo con dati sensibili
+npm test
 ```
 
-> **⚠️ IMPORTANTE**: La cartella `original-archive/` è esclusa da git (`.gitignore`).
-> Contiene dati sensibili (email, IP, DM, blocchi, following) che non devono MAI
-> essere pubblicati. Rimane solo in locale.
-
-## Visualizzazione locale
-
-Puoi visualizzare l'archivio semplicemente aprendo con un doppio clic il file `docs/index.html` nel browser (supportato nativamente senza bisogno di server web locale), oppure tramite qualsiasi web server locale.
-
-## Setup locale
-
-Per rigenerare i dati processati da zero:
-
-```powershell
-# 1. Processa i tweet (genera docs/data/)
-node scripts/process_tweets.js
-
-# 2. Copia i file media (1.793 file → docs/tweets_media/)
-node scripts/copy_media.js
-```
-
-## Contenuti inclusi (16.402 tweet)
-
-Il sito mostra esclusivamente i contenuti originali di Marco Maroni:
-- ✅ **Tweet originali** (~15.000 tweet)
-- ✅ **Continuazioni di thread propri** (~1.400 self-replies)
-- ❌ **Retweet di altri utenti** (12.732 RT esclusi)
-- ❌ **Risposte ad altri utenti** (14.909 risposte escluse)
-- 🖼️ **Media allegati**: 1.793 immagini e video (170 MB) integrati localmente
-
-## Sito
-
-🌐 [twitter-archive.marcomaroni.it](https://twitter-archive.marcomaroni.it)
+Tests run on a small fake archive in `test/helpers/fixture.js`, never on real data.
