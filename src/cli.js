@@ -12,7 +12,7 @@ if (NODE_MAJOR < 18) {
 const fs = require('fs');
 const path = require('path');
 const { UserError } = require('./errors');
-const { locateArchive, removeStaleExtractions } = require('./archive/locate');
+const { locateArchive, removeStaleExtractions, removeExtractionSync } = require('./archive/locate');
 const { readArchive } = require('./archive/read');
 const { collectSensitive, containsSensitive, guardSite } = require('./privacy/guard');
 const { resolveConfig } = require('./wizard');
@@ -53,22 +53,27 @@ function printSummary(log, summary, siteDir, fixed) {
   log(`  2. Upload the ${rel}${path.sep} folder to your hosting (see README).`);
 }
 
+const INTERRUPT_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP']; // SIGHUP: console window closed
+
 /**
- * While a temp extraction exists, Ctrl+C or closing the terminal must not leave the
- * full private archive in the temp folder. Returns a function removing the handlers.
+ * Ctrl+C or closing the terminal must not leave the full private archive in the temp
+ * folder. Installed before extraction starts; setTempDir() tells it what to remove.
  */
-function removeOnInterrupt(located) {
-  if (!located.tempDir) return () => {};
+function interruptCleanup() {
+  let tempDir = null;
   const onSignal = () => {
-    located.cleanupSync();
-    console.error('\nBuild interrupted: temporary files removed.');
+    if (tempDir) {
+      removeExtractionSync(tempDir);
+      console.error('\nBuild interrupted: temporary files removed.');
+    } else {
+      console.error('\nBuild interrupted.');
+    }
     process.exit(130);
   };
-  process.on('SIGINT', onSignal);
-  process.on('SIGTERM', onSignal);
-  return () => {
-    process.removeListener('SIGINT', onSignal);
-    process.removeListener('SIGTERM', onSignal);
+  for (const s of INTERRUPT_SIGNALS) process.on(s, onSignal);
+  return {
+    setTempDir: (dir) => { tempDir = dir; },
+    remove: () => { for (const s of INTERRUPT_SIGNALS) process.removeListener(s, onSignal); },
   };
 }
 
@@ -85,8 +90,14 @@ async function build({
 } = {}) {
   removeStaleExtractions();
   log('Looking for your archive…');
-  const located = await locateArchive(archiveDir);
-  const removeHandlers = removeOnInterrupt(located);
+  const interrupt = interruptCleanup();
+  let located;
+  try {
+    located = await locateArchive(archiveDir, { onTempDir: interrupt.setTempDir });
+  } catch (err) {
+    interrupt.remove();
+    throw err;
+  }
   try {
     const archive = readArchive(located.root);
     const sensitive = collectSensitive(located.root);
@@ -159,7 +170,7 @@ async function build({
     printSummary(log, summary, siteDir, fixed);
     return summary;
   } finally {
-    removeHandlers();
+    interrupt.remove();
     await located.cleanup();
   }
 }

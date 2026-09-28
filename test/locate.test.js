@@ -104,3 +104,26 @@ test('tempDir is null for an extracted folder and cleanupSync leaves it alone', 
   located.cleanupSync();
   assert.ok(hasManifest(dir), 'cleanupSync must not delete the user folder');
 });
+
+test('reports the temp folder before extracting, with a specific prefix', async () => {
+  const dir = makeTmpDir('archive');
+  await zipDir(createFixtureArchive(), path.join(dir, 'twitter.zip'));
+  const seen = [];
+  const located = await locateArchive(dir, {
+    onTempDir: (tmp) => seen.push({ tmp, existed: fs.existsSync(tmp), empty: fs.readdirSync(tmp).length === 0 }),
+  });
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].tmp, located.tempDir);
+  assert.ok(seen[0].existed && seen[0].empty, 'must be reported before anything is extracted');
+  assert.ok(path.basename(located.tempDir).startsWith('twitter-archive-site-extract-'));
+  located.cleanupSync();
+});
+
+test('the reported temp folder is removed when the extraction fails', async () => {
+  const dir = makeTmpDir('archive');
+  fs.writeFileSync(path.join(dir, 'broken.zip'), 'this is not a zip');
+  let reported = null;
+  await assert.rejects(locateArchive(dir, { onTempDir: (tmp) => { reported = tmp; } }), UserError);
+  assert.ok(reported, 'onTempDir must be called before extraction');
+  assert.ok(!fs.existsSync(reported));
+});

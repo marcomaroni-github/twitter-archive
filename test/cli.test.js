@@ -118,10 +118,10 @@ test('a build that fails while writing the site leaves no partial site folder', 
 test('stale extraction folders from interrupted runs are removed', async () => {
   const opts = await setup();
   await withTmpBase(async (tmpBase) => {
-    const stale = path.join(tmpBase, 'twitter-archive-stale1');
+    const stale = path.join(tmpBase, 'twitter-archive-site-extract-stale1');
     fs.mkdirSync(path.join(stale, 'data'), { recursive: true });
     fs.writeFileSync(path.join(stale, 'data', 'direct-messages.js'), 'private');
-    const other = path.join(tmpBase, 'unrelated-folder');
+    const other = path.join(tmpBase, 'twitter-archive-other-tool');
     fs.mkdirSync(other);
     await build({ ...opts, flags: { yes: true, reconfigure: false } });
     assert.ok(!fs.existsSync(stale), 'stale extraction folder still present');

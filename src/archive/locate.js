@@ -7,7 +7,7 @@ const yauzl = require('yauzl');
 const { UserError } = require('../errors');
 const { readManifest } = require('./read');
 
-const TEMP_PREFIX = 'twitter-archive-';
+const TEMP_PREFIX = 'twitter-archive-site-extract-';
 const COPY_HINT = 'Copy the .zip file downloaded from Twitter/X into the "archive" folder, then run "npm run build" again.';
 
 /** Folders (up to maxDepth levels below dir, dir included) that contain data/manifest.js. */
@@ -72,17 +72,22 @@ function accountIdAt(root) {
   return String((readManifest(root).userInfo || {}).accountId || '');
 }
 
-async function extractZips(zips) {
+/** Remove an extraction folder; never throws (e.g. EBUSY on Windows must not replace the real error). */
+function removeExtractionSync(dir) {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3 });
+  } catch {
+    // Best effort.
+  }
+}
+
+async function extractZips(zips, onTempDir) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), TEMP_PREFIX));
-  const cleanupSync = () => {
-    try {
-      fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 3 });
-    } catch {
-      // Never let a cleanup failure (e.g. EBUSY on Windows) replace the real error.
-    }
-  };
+  const cleanupSync = () => removeExtractionSync(tmp);
   const cleanup = async () => cleanupSync();
   try {
+    // Let the caller know the folder before the first byte is extracted (interruption cleanup).
+    if (onTempDir) onTempDir(tmp);
     let accountId = null;
     for (const zipPath of zips) {
       await extractZip(zipPath, tmp);
@@ -107,7 +112,11 @@ async function extractZips(zips) {
   }
 }
 
-async function locateArchive(archiveDir) {
+/**
+ * Find the archive in archiveDir, extracting zips into a temp folder.
+ * options.onTempDir(dir) is called as soon as that temp folder exists, before extracting.
+ */
+async function locateArchive(archiveDir, { onTempDir } = {}) {
   if (!fs.existsSync(archiveDir)) {
     throw new UserError(`Folder not found: ${archiveDir}`, COPY_HINT);
   }
@@ -123,7 +132,7 @@ async function locateArchive(archiveDir) {
       'Keep only one of them: either the zip file(s) or the extracted folder.'
     );
   }
-  if (zips.length > 0) return extractZips(zips);
+  if (zips.length > 0) return extractZips(zips, onTempDir);
   if (folders.length === 0) throw new UserError('No Twitter archive found in the "archive" folder.', COPY_HINT);
   if (folders.length > 1) {
     throw new UserError('More than one extracted archive found in the "archive" folder.', 'Keep only one archive in the "archive" folder.');
@@ -150,4 +159,4 @@ function removeStaleExtractions() {
   }
 }
 
-module.exports = { locateArchive, removeStaleExtractions };
+module.exports = { locateArchive, removeStaleExtractions, removeExtractionSync };
