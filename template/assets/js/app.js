@@ -437,39 +437,73 @@ function buildTweetCard(tweet) {
 // ═══════════════════════════════════════════════════════
 // TEXT RENDERING
 // ═══════════════════════════════════════════════════════
-function renderText(rawText, urls, hashtags) {
-  // 1. Escape HTML first (rawText was already html.unescape'd in Node script)
-  let text = escHtml(rawText);
+const escRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const SAFE_HREF = /^https?:\/\//i;
 
-  // 2. Replace t.co URLs with display links
-  if (urls && urls.length) {
-    for (const u of urls) {
-      if (!u.url) continue;
-      const escapedTco  = escHtml(u.url);
-      const expandedUrl = escAttr(u.expanded_url || u.url);
-      const displayUrl  = escHtml(u.display_url || u.url);
-      // Replace all occurrences (some tweets link same URL twice)
-      text = text.split(escapedTco).join(
-        `<a href="${expandedUrl}" target="_blank" rel="noopener noreferrer">${displayUrl}</a>`
-      );
+/**
+ * Split plain tweet text (already entity-decoded by the build) into tokens, in one pass:
+ *   { type: 'text', value }             plain text
+ *   { type: 'url', href, display }      a t.co link with known target
+ *   { type: 'mention', name }           @name
+ *   { type: 'hashtag', tag }            #tag (Unicode letters, digits, underscore)
+ * Unknown t.co links (media attachments) are dropped. Nothing here is HTML yet.
+ */
+function tokenizeText(rawText, urls) {
+  const text = String(rawText || '');
+  const known = new Map();
+  for (const u of urls || []) if (u && u.url) known.set(u.url, u);
+
+  const alternatives = [...known.keys()].sort((a, b) => b.length - a.length).map(escRegExp);
+  alternatives.push('https:\\/\\/t\\.co\\/\\w{6,}');
+  const re = new RegExp(
+    `(${alternatives.join('|')})` +
+      '|(?<![\\p{L}\\p{N}_&/])@(\\w+)' +
+      '|(?<![\\p{L}\\p{N}_&])#([\\p{L}\\p{N}_]+)',
+    'gu'
+  );
+
+  const tokens = [];
+  const pushText = value => { if (value) tokens.push({ type: 'text', value }); };
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    pushText(text.slice(last, m.index));
+    last = m.index + m[0].length;
+    if (m[1]) {
+      const u = known.get(m[1]);
+      if (!u) continue; // unknown t.co link: dropped
+      const href = SAFE_HREF.test(u.expanded_url || '') ? u.expanded_url : u.url;
+      const display = u.display_url || u.url;
+      if (SAFE_HREF.test(href)) tokens.push({ type: 'url', href, display });
+      else pushText(display);
+    } else if (m[2]) {
+      tokens.push({ type: 'mention', name: m[2] });
+    } else {
+      tokens.push({ type: 'hashtag', tag: m[3] });
     }
   }
-
-  // 3. Remove remaining t.co URLs (they're media attachment links)
-  text = text.replace(/https:\/\/t\.co\/\w{6,}/g, '').trim();
-
-  // 4. Convert @mentions to links (not inside existing href attributes)
-  text = text.replace(/(?<![="])@(\w+)/g, (_, name) =>
-    `<a href="https://twitter.com/${name}" target="_blank" rel="noopener noreferrer" class="mention">@${name}</a>`
-  );
-
-  // 5. Convert #hashtags to in-site search links
-  text = text.replace(/(?<![=&\w])#(\w+)/g, (_, tag) =>
-    `<a href="javascript:void(0)" onclick="searchTag('${tag.replace(/'/g, "\\'")}')" class="hashtag">#${tag}</a>`
-  );
-
-  return text;
+  pushText(text.slice(last));
+  return tokens;
 }
+
+/** Tweet text as HTML: every piece is escaped, links only point to http(s). */
+function renderText(rawText, urls, hashtags) {
+  return tokenizeText(rawText, urls).map(t => {
+    switch (t.type) {
+      case 'url':
+        return `<a href="${escAttr(t.href)}" target="_blank" rel="noopener noreferrer">${escHtml(t.display)}</a>`;
+      case 'mention':
+        return `<a href="https://twitter.com/${escAttr(t.name)}" target="_blank" rel="noopener noreferrer" class="mention">@${escHtml(t.name)}</a>`;
+      case 'hashtag':
+        // Handled by the delegated click listener in bindEvents (in-site search).
+        return `<a href="#" class="hashtag" data-tag="${escAttr(t.tag)}">#${escHtml(t.tag)}</a>`;
+      default:
+        return escHtml(t.value);
+    }
+  }).join('').trim();
+}
+
+// Pure text helpers, exposed for the tests (no effect on the page).
+window.ArchiveText = { tokenizeText, renderText };
 
 // ═══════════════════════════════════════════════════════
 // MEDIA RENDERING
@@ -648,6 +682,14 @@ function bindEvents() {
     $('search-input').value = '';
     $('search-clear').style.display = 'none';
     runSearch('');
+  });
+
+  // Hashtag links: in-site search (the tag is read from data-tag, never run as code)
+  document.addEventListener('click', e => {
+    const link = e.target.closest && e.target.closest('a.hashtag[data-tag]');
+    if (!link) return;
+    e.preventDefault();
+    searchTag(link.dataset.tag);
   });
 
   // Load more
