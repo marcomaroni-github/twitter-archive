@@ -83,3 +83,24 @@ test('rejects a corrupted zip', async () => {
   fs.writeFileSync(path.join(dir, 'broken.zip'), 'this is not a zip');
   await assert.rejects(locateArchive(dir), UserError);
 });
+
+test('exposes the temp extraction folder for zips and removes it synchronously', async () => {
+  const dir = makeTmpDir('archive');
+  await zipDir(createFixtureArchive(), path.join(dir, 'twitter.zip'));
+  const located = await locateArchive(dir);
+  assert.equal(typeof located.tempDir, 'string');
+  assert.ok(located.root.startsWith(located.tempDir));
+  assert.ok(fs.existsSync(located.tempDir));
+  located.cleanupSync();
+  assert.ok(!fs.existsSync(located.tempDir));
+  await located.cleanup(); // still safe after the folder is gone
+});
+
+test('tempDir is null for an extracted folder and cleanupSync leaves it alone', async () => {
+  const dir = makeTmpDir('archive');
+  createFixtureArchive(dir);
+  const located = await locateArchive(dir);
+  assert.equal(located.tempDir, null);
+  located.cleanupSync();
+  assert.ok(hasManifest(dir), 'cleanupSync must not delete the user folder');
+});

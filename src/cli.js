@@ -11,7 +11,7 @@ if (NODE_MAJOR < 18) {
 
 const path = require('path');
 const { UserError } = require('./errors');
-const { locateArchive } = require('./archive/locate');
+const { locateArchive, removeStaleExtractions } = require('./archive/locate');
 const { readArchive } = require('./archive/read');
 const { collectSensitive, guardSite } = require('./privacy/guard');
 const { resolveConfig } = require('./wizard');
@@ -50,6 +50,25 @@ function printSummary(log, summary, siteDir, fixed) {
   log(`  2. Upload the ${rel}${path.sep} folder to your hosting (see README).`);
 }
 
+/**
+ * While a temp extraction exists, Ctrl+C or closing the terminal must not leave the
+ * full private archive in the temp folder. Returns a function removing the handlers.
+ */
+function removeOnInterrupt(located) {
+  if (!located.tempDir) return () => {};
+  const onSignal = () => {
+    located.cleanupSync();
+    console.error('\nBuild interrupted: temporary files removed.');
+    process.exit(130);
+  };
+  process.on('SIGINT', onSignal);
+  process.on('SIGTERM', onSignal);
+  return () => {
+    process.removeListener('SIGINT', onSignal);
+    process.removeListener('SIGTERM', onSignal);
+  };
+}
+
 async function build({
   archiveDir = path.join(ROOT, 'archive'),
   siteDir = path.join(ROOT, 'site'),
@@ -59,8 +78,10 @@ async function build({
   prompt,
   log = console.log,
 } = {}) {
+  removeStaleExtractions();
   log('Looking for your archive…');
   const located = await locateArchive(archiveDir);
+  const removeHandlers = removeOnInterrupt(located);
   try {
     const archive = readArchive(located.root);
     const sensitive = collectSensitive(located.root);
@@ -102,6 +123,7 @@ async function build({
     printSummary(log, summary, siteDir, fixed);
     return summary;
   } finally {
+    removeHandlers();
     await located.cleanup();
   }
 }

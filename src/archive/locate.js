@@ -7,6 +7,7 @@ const yauzl = require('yauzl');
 const { UserError } = require('../errors');
 const { readManifest } = require('./read');
 
+const TEMP_PREFIX = 'twitter-archive-';
 const COPY_HINT = 'Copy the .zip file downloaded from Twitter/X into the "archive" folder, then run "npm run build" again.';
 
 /** Folders (up to maxDepth levels below dir, dir included) that contain data/manifest.js. */
@@ -72,8 +73,9 @@ function accountIdAt(root) {
 }
 
 async function extractZips(zips) {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twitter-archive-'));
-  const cleanup = async () => fs.rmSync(tmp, { recursive: true, force: true });
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), TEMP_PREFIX));
+  const cleanupSync = () => fs.rmSync(tmp, { recursive: true, force: true });
+  const cleanup = async () => cleanupSync();
   try {
     let accountId = null;
     for (const zipPath of zips) {
@@ -92,7 +94,7 @@ async function extractZips(zips) {
     if (roots.length === 0) {
       throw new UserError('The zip file does not contain a Twitter archive (data/manifest.js not found).', COPY_HINT);
     }
-    return { root: roots[0], cleanup };
+    return { root: roots[0], tempDir: tmp, cleanup, cleanupSync };
   } catch (err) {
     await cleanup();
     throw err;
@@ -120,7 +122,26 @@ async function locateArchive(archiveDir) {
   if (folders.length > 1) {
     throw new UserError('More than one extracted archive found in the "archive" folder.', 'Keep only one archive in the "archive" folder.');
   }
-  return { root: folders[0], cleanup: async () => {} };
+  return { root: folders[0], tempDir: null, cleanup: async () => {}, cleanupSync: () => {} };
 }
 
-module.exports = { locateArchive };
+/** Remove extraction folders left in the temp folder by interrupted runs (best effort). */
+function removeStaleExtractions() {
+  const base = os.tmpdir();
+  let entries = [];
+  try {
+    entries = fs.readdirSync(base, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith(TEMP_PREFIX)) continue;
+    try {
+      fs.rmSync(path.join(base, entry.name), { recursive: true, force: true });
+    } catch {
+      // Best effort: a folder in use or locked is left for the next run.
+    }
+  }
+}
+
+module.exports = { locateArchive, removeStaleExtractions };

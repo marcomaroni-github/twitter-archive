@@ -9,6 +9,26 @@ const { createFixtureArchive, makeTmpDir, zipDir, listFiles, SENSITIVE } = requi
 
 const TEMPLATE = path.join(__dirname, '..', 'template');
 
+/**
+ * Run fn with a private temp base: build() removes stale twitter-archive-* folders
+ * from os.tmpdir(), and other test files run in parallel with their own extractions.
+ */
+async function withTmpBase(fn) {
+  const tmpBase = makeTmpDir('tmp-base');
+  const saved = { TMPDIR: process.env.TMPDIR, TEMP: process.env.TEMP, TMP: process.env.TMP };
+  Object.assign(process.env, { TMPDIR: tmpBase, TEMP: tmpBase, TMP: tmpBase });
+  try {
+    return await fn(tmpBase);
+  } finally {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
+const run = (opts) => withTmpBase(() => build(opts));
+
 async function setup() {
   const work = makeTmpDir('work');
   const archiveDir = path.join(work, 'archive');
@@ -31,7 +51,7 @@ test('parseArgs reads the supported flags and rejects others', () => {
 
 test('end to end: builds a site from a zip with default options', async () => {
   const opts = await setup();
-  const summary = await build({ ...opts, flags: { yes: true, reconfigure: false } });
+  const summary = await run({ ...opts, flags: { yes: true, reconfigure: false } });
 
   assert.equal(summary.included, 5);
   assert.deepEqual(summary.excluded, { retweet: 1, reply: 1 });
@@ -53,7 +73,7 @@ test('end to end: builds a site from a zip with default options', async () => {
 
 test('end to end: no private data anywhere in the site', async () => {
   const opts = await setup();
-  await build({ ...opts, flags: { yes: true, reconfigure: false } });
+  await run({ ...opts, flags: { yes: true, reconfigure: false } });
   const forbidden = [SENSITIVE.email, SENSITIVE.phone, '393331234567', SENSITIVE.creationIp, SENSITIVE.loginIp,
     SENSITIVE.dmMarker, 'Milano', 'Twitter for Android', 'GPSDATA', 'secret text', 'someone else text', '@other I agree'];
   for (const rel of listFiles(opts.siteDir)) {
@@ -67,24 +87,29 @@ test('end to end: options include retweets and replies', async () => {
   fs.writeFileSync(opts.configPath, JSON.stringify({
     lang: 'en', title: 'All', includeRetweets: true, includeReplies: true, noindex: false, website: '',
   }));
-  const summary = await build({ ...opts, flags: { yes: false, reconfigure: false } });
+  const summary = await run({ ...opts, flags: { yes: false, reconfigure: false } });
   assert.equal(summary.included, 7);
   assert.deepEqual(summary.excluded, { retweet: 0, reply: 0 });
 });
 
 test('the temporary extraction folder is removed even when the build fails', async () => {
   const opts = await setup();
-  // Private temp base: test files run in parallel and create their own temp folders.
-  const tmpBase = makeTmpDir('tmp-base');
-  const saved = { TMPDIR: process.env.TMPDIR, TEMP: process.env.TEMP, TMP: process.env.TMP };
-  Object.assign(process.env, { TMPDIR: tmpBase, TEMP: tmpBase, TMP: tmpBase });
-  try {
+  await withTmpBase(async (tmpBase) => {
     await assert.rejects(build({ ...opts, templateDir: path.join(opts.siteDir, 'no-template'), flags: { yes: true, reconfigure: false } }));
-  } finally {
-    for (const [k, v] of Object.entries(saved)) {
-      if (v === undefined) delete process.env[k];
-      else process.env[k] = v;
-    }
-  }
-  assert.deepEqual(fs.readdirSync(tmpBase), []);
+    assert.deepEqual(fs.readdirSync(tmpBase), []);
+  });
+});
+
+test('stale extraction folders from interrupted runs are removed', async () => {
+  const opts = await setup();
+  await withTmpBase(async (tmpBase) => {
+    const stale = path.join(tmpBase, 'twitter-archive-stale1');
+    fs.mkdirSync(path.join(stale, 'data'), { recursive: true });
+    fs.writeFileSync(path.join(stale, 'data', 'direct-messages.js'), 'private');
+    const other = path.join(tmpBase, 'unrelated-folder');
+    fs.mkdirSync(other);
+    await build({ ...opts, flags: { yes: true, reconfigure: false } });
+    assert.ok(!fs.existsSync(stale), 'stale extraction folder still present');
+    assert.ok(fs.existsSync(other), 'unrelated temp folder must be kept');
+  });
 });
