@@ -39,6 +39,15 @@ README) is copied into `site` on each build.
 | `npm run build -- --yes` | Never asks; uses `config.json` or the defaults |
 | `npm run build -- --debug` | Shows technical details when something goes wrong |
 
+If you stop a build (Ctrl+C or by closing the terminal), the temporary copy of
+your archive is removed; anything left behind is removed at the start of the
+next run.
+
+**Git Bash on Windows:** its terminal (mintty) does not show the setup
+questions. Run `npm run build` from PowerShell, Command Prompt or Windows
+Terminal instead, or edit `config.json` by hand, or run
+`npm run build -- --reconfigure` from one of those terminals.
+
 ## What gets published — and what doesn't
 
 Published:

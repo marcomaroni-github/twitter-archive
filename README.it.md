@@ -39,6 +39,15 @@ file a mano. Mettili invece nella cartella `extra`: tutto quello che contiene
 | `npm run build -- --yes` | Non chiede mai; usa `config.json` o i default |
 | `npm run build -- --debug` | Mostra i dettagli tecnici in caso di errore |
 
+Se interrompi una build (Ctrl+C o chiudendo il terminale), la copia temporanea
+dell'archivio viene cancellata; quello che eventualmente resta viene cancellato
+all'avvio della build successiva.
+
+**Git Bash su Windows:** il suo terminale (mintty) non mostra le domande
+iniziali. Lancia `npm run build` da PowerShell, Prompt dei comandi o Windows
+Terminal, oppure modifica `config.json` a mano, oppure lancia
+`npm run build -- --reconfigure` da uno di quei terminali.
+
 ## Cosa viene pubblicato e cosa no
 
 Pubblicato:
