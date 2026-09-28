@@ -5,6 +5,13 @@ dove vuoi, senza esporre i tuoi dati privati.
 
 Formato supportato: l'archivio di Twitter come esportato ad aprile 2024.
 
+## Esempio dal vivo
+
+Guarda il risultato: [twitter-archive.marcomaroni.it](https://twitter-archive.marcomaroni.it)
+è l'archivio dell'autore di questo progetto, generato con questo strumento a
+partire dal suo export e pubblicato su GitHub Pages
+([sorgente](https://github.com/marcomaroni-github/mm-twitter-archive)).
+
 ## Cosa serve
 
 - [Node.js](https://nodejs.org) 18 o successivo
@@ -97,3 +104,7 @@ npm test
 ```
 
 I test usano un piccolo archivio finto in `test/helpers/fixture.js`, mai dati reali.
+
+## Autore
+
+Creato da [Marco Maroni](https://github.com/marcomaroni-github).

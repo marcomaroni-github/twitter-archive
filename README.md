@@ -5,6 +5,13 @@ publish anywhere — keeping your private data private.
 
 Supported format: the Twitter archive as exported in April 2024.
 
+## Live example
+
+See what you get: [twitter-archive.marcomaroni.it](https://twitter-archive.marcomaroni.it)
+is the author's own archive, generated with this tool from the original
+Twitter export and published on GitHub Pages
+([source](https://github.com/marcomaroni-github/mm-twitter-archive)).
+
 ## What you need
 
 - [Node.js](https://nodejs.org) 18 or newer
@@ -96,3 +103,7 @@ npm test
 ```
 
 Tests run on a small fake archive in `test/helpers/fixture.js`, never on real data.
+
+## Author
+
+Created by [Marco Maroni](https://github.com/marcomaroni-github).
