@@ -20,7 +20,7 @@ const { shouldInclude } = require('./pipeline/filter');
 const { buildNoteIndex, findNote } = require('./pipeline/notes');
 const { toPublicTweet } = require('./pipeline/transform');
 const { listMediaFiles, copyTweetMedia, copyProfileImages } = require('./pipeline/media');
-const { prepareSiteDir, writeSite } = require('./site/write');
+const { prepareSiteDir, writeSite, copyExtra } = require('./site/write');
 
 const ROOT = path.resolve(__dirname, '..');
 const FLAGS = { '--yes': 'yes', '--reconfigure': 'reconfigure', '--debug': 'debug' };
@@ -45,6 +45,7 @@ function printSummary(log, summary, siteDir, fixed) {
   log(`  Excluded: ${retweet} retweets, ${reply} replies to other users, ${priv} tweets containing your private contact data`);
   log(`  Media files: ${summary.media.count} (${mb(summary.media.bytes)})`);
   if (fixed.length) log(`  config.json: invalid values replaced with defaults for ${fixed.join(', ')}`);
+  if (summary.extraFiles > 0) log(`  Extra files copied: ${summary.extraFiles}`);
   for (const w of summary.media.warnings) log(`  ⚠ ${w}`);
   log('');
   log('Next steps:');
@@ -76,6 +77,7 @@ async function build({
   siteDir = path.join(ROOT, 'site'),
   configPath = path.join(ROOT, 'config.json'),
   templateDir = path.join(ROOT, 'template'),
+  extraDir = path.join(ROOT, 'extra'),
   flags = { yes: false, reconfigure: false },
   prompt,
   log = console.log,
@@ -125,10 +127,12 @@ async function build({
     prepareSiteDir(siteDir);
     let media;
     let years;
+    let extraFiles;
     try {
       const images = copyProfileImages(archive, siteDir);
       media = copyTweetMedia(tweets, archive.mediaDir, siteDir);
       ({ years } = writeSite({ siteDir, templateDir, archive, config: siteConfig, tweets, images }));
+      extraFiles = copyExtra(extraDir, siteDir);
 
       log('Checking that no private data was published…');
       guardSite(siteDir, sensitive);
@@ -142,7 +146,7 @@ async function build({
       throw err;
     }
 
-    const summary = { included: tweets.length, excluded, media, years };
+    const summary = { included: tweets.length, excluded, media, years, extraFiles };
     printSummary(log, summary, siteDir, fixed);
     return summary;
   } finally {

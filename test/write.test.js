@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { prepareSiteDir, renderTemplate, writeSite } = require('../src/site/write');
+const { prepareSiteDir, renderTemplate, writeSite, copyExtra } = require('../src/site/write');
 const { readArchive } = require('../src/archive/read');
 const { createFixtureArchive, makeTmpDir } = require('./helpers/fixture');
 
@@ -96,4 +96,23 @@ test('omits robots meta when indexing is allowed and supports English', () => {
   assert.doesNotMatch(html, /name="robots"/);
   assert.match(html, /Browse by year/);
   assert.match(html, /Exported: April 2024/);
+});
+
+test('copyExtra copies every file and subfolder except the top-level README.md', () => {
+  const extra = makeTmpDir('extra');
+  fs.writeFileSync(path.join(extra, 'README.md'), 'instructions');
+  fs.writeFileSync(path.join(extra, 'CNAME'), 'tweets.example.org');
+  fs.mkdirSync(path.join(extra, '.well-known', 'nested'), { recursive: true });
+  fs.writeFileSync(path.join(extra, '.well-known', 'nested', 'README.md'), 'nested readme is kept');
+  const site = makeTmpDir('site');
+  assert.equal(copyExtra(extra, site), 2);
+  assert.equal(fs.readFileSync(path.join(site, 'CNAME'), 'utf8'), 'tweets.example.org');
+  assert.ok(fs.existsSync(path.join(site, '.well-known', 'nested', 'README.md')));
+  assert.ok(!fs.existsSync(path.join(site, 'README.md')));
+});
+
+test('copyExtra returns 0 when the folder is missing', () => {
+  const site = makeTmpDir('site');
+  assert.equal(copyExtra(path.join(site, 'no-extra'), site), 0);
+  assert.deepEqual(fs.readdirSync(site), []);
 });

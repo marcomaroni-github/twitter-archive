@@ -113,4 +113,28 @@ function writeSite({ siteDir, templateDir, archive, config, tweets, images }) {
   return { years, tweetCounts };
 }
 
-module.exports = { prepareSiteDir, renderTemplate, writeSite };
+function countFiles(dir) {
+  let n = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    n += entry.isDirectory() ? countFiles(path.join(dir, entry.name)) : 1;
+  }
+  return n;
+}
+
+/**
+ * Copy the user's own files (e.g. CNAME) from extraDir into the site, except the
+ * top-level README.md that explains the folder. Returns the number of files copied.
+ */
+function copyExtra(extraDir, siteDir) {
+  if (!fs.existsSync(extraDir)) return 0;
+  let count = 0;
+  for (const entry of fs.readdirSync(extraDir, { withFileTypes: true })) {
+    if (entry.name === 'README.md') continue;
+    const src = path.join(extraDir, entry.name);
+    fs.cpSync(src, path.join(siteDir, entry.name), { recursive: true });
+    count += entry.isDirectory() ? countFiles(src) : 1;
+  }
+  return count;
+}
+
+module.exports = { prepareSiteDir, renderTemplate, writeSite, copyExtra };

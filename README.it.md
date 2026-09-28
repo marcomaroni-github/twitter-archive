@@ -28,6 +28,10 @@ Formato supportato: l'archivio di Twitter come esportato ad aprile 2024.
 
 Le risposte vengono salvate in `config.json`: il `npm run build` successivo non chiede nulla.
 
+La cartella `site` viene cancellata e ricreata a ogni build: non aggiungerci
+file a mano. Mettili invece nella cartella `extra`: tutto quello che contiene
+(tranne il suo README) viene copiato in `site` a ogni build.
+
 | Comando | Cosa fa |
 |---|---|
 | `npm run build` | Genera il sito (fa domande solo la prima volta) |
@@ -70,6 +74,8 @@ La cartella `site` è un normale sito statico: caricala dove preferisci.
 - **GitHub Pages**: crea un nuovo repository, mettici il contenuto di `site`,
   poi *Settings → Pages → Deploy from a branch*. GitHub rifiuta file oltre
   100 MB e consiglia siti sotto 1 GB: la build ti avvisa se li superi.
+  Per un dominio personalizzato, crea un file `extra/CNAME` che contiene solo il
+  tuo dominio (es. `tweets.example.org`): viene copiato in `site` a ogni build.
 - **Netlify**: trascina la cartella `site` su <https://app.netlify.com/drop>.
 - **Un tuo server**: copia il contenuto di `site` nella cartella pubblica.
 

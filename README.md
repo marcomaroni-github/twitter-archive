@@ -28,6 +28,10 @@ Supported format: the Twitter archive as exported in April 2024.
 
 Your answers are saved in `config.json`: the next `npm run build` asks nothing.
 
+The `site` folder is deleted and recreated on every build: do not add files to
+it by hand. Put them in the `extra` folder instead: everything in it (except its
+README) is copied into `site` on each build.
+
 | Command | What it does |
 |---|---|
 | `npm run build` | Builds the site (asks questions only the first time) |
@@ -69,6 +73,8 @@ The `site` folder is a plain static website: upload it anywhere.
 - **GitHub Pages**: create a new repository, put the contents of `site` in it,
   then *Settings → Pages → Deploy from a branch*. GitHub rejects files over
   100 MB and recommends sites under 1 GB: the build warns you if you exceed them.
+  For a custom domain, create a file `extra/CNAME` containing only your domain
+  (e.g. `tweets.example.org`): it is copied into `site` on every build.
 - **Netlify**: drag and drop the `site` folder on <https://app.netlify.com/drop>.
 - **Your own server**: copy the contents of `site` to the web root.
 

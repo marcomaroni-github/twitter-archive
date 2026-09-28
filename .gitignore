@@ -4,6 +4,10 @@
 # ==========================================================
 archive/*
 !archive/README.md
+
+# Your own files copied into site/ on each build (e.g. CNAME)
+extra/*
+!extra/README.md
 original-archive/
 config.json
 

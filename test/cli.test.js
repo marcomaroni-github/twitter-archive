@@ -39,6 +39,7 @@ async function setup() {
     siteDir: path.join(work, 'site'),
     configPath: path.join(work, 'config.json'),
     templateDir: TEMPLATE,
+    extraDir: path.join(work, 'extra'),
     log: () => {},
   };
 }
@@ -149,4 +150,16 @@ test('end to end: tweets and bio containing your private contact data are hidden
   assert.ok(lines.some((l) => l.includes('1 tweets containing your private contact data')));
   assert.ok(!lines.join('\n').includes(SENSITIVE.email));
   assert.match(fs.readFileSync(opts.configPath, 'utf8'), /example\.org/, 'config.json must not be rewritten');
+});
+
+test('end to end: files in extra/ are copied into the site', async () => {
+  const opts = await setup();
+  fs.mkdirSync(opts.extraDir);
+  fs.writeFileSync(path.join(opts.extraDir, 'CNAME'), 'tweets.example.org');
+  fs.writeFileSync(path.join(opts.extraDir, 'README.md'), 'instructions');
+  const lines = [];
+  await run({ ...opts, log: (l) => lines.push(l), flags: { yes: true, reconfigure: false } });
+  assert.equal(fs.readFileSync(path.join(opts.siteDir, 'CNAME'), 'utf8'), 'tweets.example.org');
+  assert.ok(!fs.existsSync(path.join(opts.siteDir, 'README.md')));
+  assert.ok(lines.includes('  Extra files copied: 1'));
 });
