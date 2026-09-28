@@ -17,7 +17,8 @@ const SENSITIVE_TYPES = {
   ipAudit: 'ip',
 };
 const KEY_PATTERN = { email: /email/i, phone: /phone/i, ip: /ip$/i };
-const TEXT_EXT = new Set(['.html', '.js', '.css', '.json', '.txt']);
+// '' = no extension (e.g. CNAME copied from extra/): treated as text.
+const TEXT_EXT = new Set(['.html', '.js', '.css', '.json', '.txt', '']);
 
 function stringLeaves(value, key, out) {
   if (typeof value === 'string') out.push([key, value]);

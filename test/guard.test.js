@@ -83,3 +83,12 @@ test('containsSensitive uses the same matching rules as scanSite', () => {
   assert.equal(containsSensitive('ip 1.2.3.4.', ip), true);
   assert.equal(containsSensitive('anything', []), false);
 });
+
+test('scanSite also scans files without an extension (e.g. CNAME from extra/)', () => {
+  const sensitive = collectSensitive(createFixtureArchive());
+  const site = siteWith({
+    CNAME: `tweets.example.org ${SENSITIVE.email}`,
+    'tweets_media/a.mp4': SENSITIVE.email,
+  });
+  assert.deepEqual(scanSite(site, sensitive), [{ kind: 'email', file: 'CNAME' }]);
+});
