@@ -74,7 +74,13 @@ function accountIdAt(root) {
 
 async function extractZips(zips) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), TEMP_PREFIX));
-  const cleanupSync = () => fs.rmSync(tmp, { recursive: true, force: true });
+  const cleanupSync = () => {
+    try {
+      fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 3 });
+    } catch {
+      // Never let a cleanup failure (e.g. EBUSY on Windows) replace the real error.
+    }
+  };
   const cleanup = async () => cleanupSync();
   try {
     let accountId = null;
