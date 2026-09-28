@@ -9,10 +9,10 @@ archive/*
 extra/*
 !extra/README.md
 original-archive/
-config.json
+/config.json
 
 # Generated site
-site/
+/site/
 
 # Node
 node_modules/
