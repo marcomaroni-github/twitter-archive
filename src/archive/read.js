@@ -75,7 +75,6 @@ function readArchive(root) {
     profile: {
       bio: description.bio || '',
       website: description.website || '',
-      location: description.location || '',
       avatarMediaUrl: profileEntry.avatarMediaUrl || '',
       headerMediaUrl: profileEntry.headerMediaUrl || '',
     },

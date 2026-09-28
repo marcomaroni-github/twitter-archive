@@ -44,7 +44,7 @@ README) is copied into `site` on each build.
 Published:
 - Your own tweets and the replies you wrote in your own threads
 - Their photos and videos (with location and camera data removed from images)
-- Your name, username, bio, location, avatar and header as shown on your profile
+- Your name, username, bio, avatar and header as shown on your profile
 - Retweets and replies to other users **only if you choose so** (default: no)
 
 Never published, whatever you choose:

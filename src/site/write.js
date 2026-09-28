@@ -81,7 +81,6 @@ function writeSite({ siteDir, templateDir, archive, config, tweets, images }) {
       createdAt: archive.account.createdAt,
       bio: archive.profile.bio,
       website: config.website,
-      location: archive.profile.location,
       avatarLocal: images.avatar,
       headerLocal: images.header,
     },

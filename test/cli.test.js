@@ -83,7 +83,7 @@ test('end to end: no private data anywhere in the site', async () => {
   const opts = await setup();
   await run({ ...opts, flags: { yes: true, reconfigure: false } });
   const forbidden = [SENSITIVE.email, SENSITIVE.phone, '393331234567', SENSITIVE.creationIp, SENSITIVE.loginIp,
-    SENSITIVE.dmMarker, 'Milano', 'Twitter for Android', 'GPSDATA', 'secret text', 'someone else text', '@other I agree'];
+    SENSITIVE.dmMarker, 'Milano', 'Somewhere', 'Twitter for Android', 'GPSDATA', 'secret text', 'someone else text', '@other I agree'];
   for (const rel of listFiles(opts.siteDir)) {
     const content = fs.readFileSync(path.join(opts.siteDir, rel)).toString('latin1');
     for (const needle of forbidden) assert.ok(!content.includes(needle), `${needle} found in ${rel}`);

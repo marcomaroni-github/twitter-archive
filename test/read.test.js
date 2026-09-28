@@ -21,7 +21,7 @@ test('readArchive returns user, profile, account date, notes and media paths', (
   assert.equal(a.generationDate, '2024-04-08T15:59:18.409Z');
   assert.equal(a.profile.bio, 'I tweet things');
   assert.equal(a.profile.website, 'https://t.co/prof1');
-  assert.equal(a.profile.location, 'Somewhere');
+  assert.ok(!('location' in a.profile), 'the profile location is never read into the pipeline');
   assert.equal(a.profile.avatarMediaUrl, 'https://pbs.twimg.com/profile_images/1/avatarX.jpg');
   assert.deepEqual(a.account, { createdAt: '2008-06-01T10:00:00.000Z' });
   assert.equal(a.noteTweets.length, 1);

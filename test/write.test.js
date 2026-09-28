@@ -60,7 +60,7 @@ test('writes the public manifest', () => {
   const m = loadGlobal(path.join(site, 'data', 'manifest.js'), 'ARCHIVE_MANIFEST');
   assert.deepEqual(m.profile, {
     username: 'testuser', displayName: 'Test User', createdAt: '2008-06-01T10:00:00.000Z',
-    bio: 'I tweet things', website: 'https://example.org', location: 'Somewhere',
+    bio: 'I tweet things', website: 'https://example.org',
     avatarLocal: 'assets/images/avatar.jpg', headerLocal: null,
   });
   assert.deepEqual(m.years, ['2021', '2020']);

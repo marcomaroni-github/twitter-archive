@@ -44,7 +44,7 @@ file a mano. Mettili invece nella cartella `extra`: tutto quello che contiene
 Pubblicato:
 - I tuoi tweet e le risposte che hai scritto nei tuoi thread
 - Le loro foto e i video (dalle immagini vengono tolti posizione e dati della fotocamera)
-- Nome, username, bio, località, avatar e copertina come appaiono nel profilo
+- Nome, username, bio, avatar e copertina come appaiono nel profilo
 - Retweet e risposte ad altri utenti **solo se lo scegli** (default: no)
 
 Mai pubblicato, qualunque cosa tu scelga:
